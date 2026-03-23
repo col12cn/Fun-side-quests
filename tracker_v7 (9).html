@@ -1,0 +1,1724 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Paper Portfolio Tracker</title>
+  <style>
+    :root {
+      --bg: #0b1020; --panel: #121933; --panel-2: #192349;
+      --text: #ecf1ff; --muted: #a8b4d8; --line: #2d3a6b;
+      --good: #27c281; --bad: #ff6b6b; --warn: #f3b74f;
+      --accent: #7aa2ff; --chip: #1f2b55;
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Inter, Arial, sans-serif;
+      background: linear-gradient(180deg,#0b1020 0%,#101834 100%); color:var(--text); }
+    .wrap { max-width:1400px; margin:0 auto; padding:24px; }
+    h1,h2,h3 { margin:0 0 10px 0; }
+    p { color:var(--muted); line-height:1.5; }
+    .small { font-size:13px; color:var(--muted); }
+    .tabs { display:flex; flex-wrap:wrap; gap:10px; margin:18px 0; }
+    .tab-btn { border:1px solid var(--line); background:var(--panel); color:var(--text);
+      padding:10px 14px; border-radius:12px; cursor:pointer; }
+    .tab-btn.active { background:var(--accent); color:#08112b; border-color:var(--accent); }
+    .tab { display:none; }
+    .tab.active { display:block; }
+    .grid { display:grid; gap:16px; }
+    .grid-2 { grid-template-columns:1.1fr 0.9fr; }
+    .card { background:rgba(18,25,51,0.92); border:1px solid var(--line); border-radius:16px;
+      padding:16px; box-shadow:0 8px 28px rgba(0,0,0,.18); margin-bottom:16px; }
+    .metrics { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; }
+    .metrics-5 { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+    .metric { background:var(--panel-2); border:1px solid var(--line); border-radius:14px; padding:12px; }
+    .metric .label { display:block; color:var(--muted); font-size:12px; margin-bottom:4px; }
+    .metric .value { font-size:20px; font-weight:700; }
+    table { width:100%; border-collapse:collapse; }
+    th,td { border-bottom:1px solid var(--line); padding:10px 8px; text-align:left;
+      vertical-align:top; font-size:14px; }
+    th { color:#cfd8ff; font-weight:600; }
+    input,select,textarea { width:100%; background:#0f1732; color:var(--text);
+      border:1px solid var(--line); border-radius:10px; padding:10px 12px; outline:none; }
+    textarea { min-height:100px; resize:vertical; }
+    label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
+    .row { display:grid; grid-template-columns:repeat(12,1fr); gap:12px; margin-bottom:12px; }
+    .col-2{grid-column:span 2} .col-3{grid-column:span 3} .col-4{grid-column:span 4}
+    .col-6{grid-column:span 6} .col-8{grid-column:span 8} .col-12{grid-column:span 12}
+    button { border:0; border-radius:12px; padding:11px 14px; cursor:pointer;
+      background:var(--accent); color:#08112b; font-weight:700; }
+    button.secondary { background:#334372; color:var(--text); }
+    button.ghost { background:transparent; color:var(--text); border:1px solid var(--line); }
+    button.warn { background:var(--warn); color:#2b2000; }
+    button.danger { background:#7a2020; color:#ffd0d0; }
+    .btns { display:flex; gap:10px; flex-wrap:wrap; }
+    .pill { display:inline-block; padding:5px 9px; border-radius:999px; font-size:12px;
+      font-weight:700; background:var(--chip); border:1px solid var(--line); color:#dce5ff; }
+    .good { color:var(--good); } .bad { color:var(--bad); } .warn-text { color:var(--warn); }
+    .mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+    .news-item { border-top:1px solid var(--line); padding:12px 0; }
+    .news-item:first-child { border-top:0; }
+    .split { display:flex; justify-content:space-between; gap:12px; align-items:start; }
+    svg { width:100%; height:330px; background:#0f1732; border:1px solid var(--line); border-radius:14px; }
+    .status { min-height:20px; color:var(--muted); }
+    .code { white-space:pre-wrap; background:#0f1732; border:1px solid var(--line);
+      border-radius:12px; padding:12px; }
+    .footnote { font-size:12px; color:var(--muted); margin-top:8px; }
+    .deposit-badge { background:#1a3a2a; color:#57df9f; border:1px solid #27c281; }
+    .withdraw-badge { background:#3a1a1a; color:#ff9090; border:1px solid #ff6b6b; }
+    .reset-badge { background:#2a2a1a; color:#ffd27d; border:1px solid #f3b74f; }
+    @media(max-width:1100px){
+      .grid-2,.metrics,.metrics-5{grid-template-columns:1fr;}
+      .col-2,.col-3,.col-4,.col-6,.col-8,.col-12{grid-column:span 12;}
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Paper Portfolio Tracker</h1>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('overview',this)">Overview</button>
+    <button class="tab-btn" onclick="showTab('portfolio',this)">Portfolio</button>
+    <button class="tab-btn" onclick="showTab('news',this)">News</button>
+    <button class="tab-btn" onclick="showTab('engine',this)">Trade</button>
+    <button class="tab-btn" onclick="showTab('cash',this)">Cash</button>
+    <button class="tab-btn" onclick="showTab('log',this)">Logs</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div id="overview" class="tab active">
+    <div class="metrics" id="metrics"></div>
+
+    <!-- AI Thesis card — shown only when an AI basket is active -->
+    <div id="thesisCard" class="card" style="display:none;margin-top:16px;">
+      <div class="split" style="align-items:center;margin-bottom:10px;">
+        <h2 style="margin:0;">AI Investment Thesis</h2>
+        <span class="pill" id="thesisBadge">Gemini · US Equity · Long Only</span>
+      </div>
+      <p id="thesisText" style="white-space:pre-wrap;line-height:1.7;margin:0;"></p>
+    </div>
+
+    <div class="grid grid-2" style="margin-top:16px;">
+      <div class="card">
+        <h2 id="basketTitle">Current basket</h2>
+        <p class="small" id="basketSubtitle">Fetch live quotes in the Portfolio tab to mark to market.</p>
+        <div id="thesisList"></div>
+      </div>
+
+      <!-- Manual portfolio builder -->
+      <div class="card">
+        <h2>Portfolio builder</h2>
+        <p class="small" style="margin-bottom:12px;">Define your basket manually. Weights are auto-normalised to 1.0.</p>
+
+        <!-- Thesis -->
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Investment thesis (optional)</label>
+        <textarea id="manualThesis" rows="3" style="width:100%;box-sizing:border-box;resize:vertical;font-size:13px;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);margin-bottom:12px;" placeholder="Describe your macro view, sector tilts, and rationale…"></textarea>
+
+        <!-- JSON import -->
+        <div style="margin-bottom:12px;border:1px solid var(--border);border-radius:6px;padding:10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:12px;font-weight:600;">Import picks from JSON</span>
+            <button onclick="importPicksFromJson()" style="font-size:12px;padding:3px 10px;">⇩ Import</button>
+          </div>
+          <textarea id="jsonImportField" rows="3" style="width:100%;box-sizing:border-box;font-size:11px;font-family:monospace;padding:6px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);resize:vertical;" placeholder='Paste JSON array here: [{"ticker":"NVDA","name":"NVIDIA","weight":0.22,"why":"..."},...]'></textarea>
+          <div class="status" id="importStatus" style="margin-top:4px;"></div>
+        </div>
+
+        <!-- Picks table -->
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;" id="basketBuilderTable">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border);">
+                <th style="text-align:left;padding:4px 6px;">Ticker</th>
+                <th style="text-align:left;padding:4px 6px;">Name</th>
+                <th style="text-align:left;padding:4px 6px;">Wt %</th>
+                <th style="text-align:left;padding:4px 6px;">Why</th>
+                <th style="padding:4px;"></th>
+              </tr>
+            </thead>
+            <tbody id="basketRows"></tbody>
+          </table>
+        </div>
+        <button onclick="addBasketRow()" style="margin-top:8px;font-size:12px;padding:5px 12px;">+ Add row</button>
+
+        <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button onclick="manualRebalance()" style="background:var(--accent);color:#fff;flex:1;min-width:120px;">⇄ Rebalance at NAV</button>
+          <button class="danger" onclick="manualReset()" style="flex:1;min-width:120px;">↺ Full reset ($1,000)</button>
+        </div>
+        <div class="status" id="resetStatus" style="margin-top:10px;"></div>
+
+        <!-- Generate AI prompt -->
+        <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:12px;font-weight:600;">AI portfolio prompt</span>
+            <button onclick="generatePortfolioPrompt()" id="genPromptBtn" style="font-size:12px;padding:4px 12px;">✦ Generate prompt</button>
+          </div>
+          <p class="footnote" style="margin-bottom:8px;">Gemini crafts a prompt you paste into any AI (ChatGPT, Claude, Perplexity…) to get a full portfolio with thesis + picks in the right format. Requires Gemini key in the News tab.</p>
+          <div id="promptOutput" style="display:none;">
+            <textarea id="promptText" rows="32" readonly style="width:100%;box-sizing:border-box;font-size:12px;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);resize:vertical;font-family:monospace;line-height:1.5;"></textarea>
+            <button onclick="copyPrompt()" style="margin-top:6px;font-size:12px;padding:4px 12px;">⎘ Copy to clipboard</button>
+            <span id="copyConfirm" style="font-size:11px;color:var(--good);margin-left:8px;display:none;">Copied!</span>
+          </div>
+          <div class="status" id="promptStatus" style="margin-top:6px;"></div>
+        </div>
+
+        <p class="footnote" style="margin-top:8px;">
+          <strong>Rebalance:</strong> liquidates all positions at current NAV, reinvests into new basket. Logs and price history preserved.<br>
+          <strong>Full reset:</strong> wipes everything, restarts with $1,000.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PORTFOLIO -->
+  <div id="portfolio" class="tab">
+    <div class="card">
+      <h2>Market data</h2>
+      <div class="row">
+        <div class="col-4"><label>Finnhub API key</label>
+          <input id="finnhubKey" placeholder="Paste Finnhub token" /></div>
+        <div class="col-4"><label>Price history lookback (days)</label>
+          <input id="lookbackDays" type="number" min="20" max="180" value="45" /></div>
+        <div class="col-4"><label>News lookback (days)</label>
+          <input id="newsLookback" type="number" min="1" max="14" value="3" /></div>
+        <div class="col-12 btns">
+          <button onclick="saveFinnhubKey()">Save Finnhub key</button>
+          <button class="secondary" onclick="fetchLiveMarketData()">Fetch quotes</button>
+          <button class="ghost" onclick="refreshPortfolioMark()">Re-mark holdings</button>
+        </div>
+        <div class="col-12"><div class="status" id="marketStatus"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Marked-to-market</h2>
+      <div class="metrics-5" id="portfolioValuationMetrics"></div>
+    </div>
+    <div class="card">
+      <h2>Holdings</h2>
+      <table id="holdingsTable"></table>
+    </div>
+    <div class="card">
+      <div class="split" style="align-items:center;margin-bottom:10px;">
+        <h2 style="margin:0;">Portfolio analysis</h2>
+        <button onclick="fetchPortfolioAnalysis()" id="analysisBtn" style="font-size:12px;padding:5px 14px;">✦ Analyse with Gemini</button>
+      </div>
+      <p class="footnote" style="margin-bottom:10px;">Uses Gemini with Google Search grounding to assess current portfolio against live market conditions. Requires Gemini key in the News tab and quotes to be fetched first.</p>
+      <div class="status" id="analysisStatus" style="margin-bottom:8px;"></div>
+      <div id="analysisOutput" style="display:none;">
+        <textarea id="analysisText" readonly rows="32" style="width:100%;box-sizing:border-box;font-size:13px;line-height:1.7;padding:12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);resize:vertical;font-family:inherit;"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEWS -->
+  <div id="news" class="tab">
+    <div class="grid grid-2">
+      <div class="card">
+        <h2>Gemini news fetch</h2>
+        <div class="row">
+          <div class="col-6"><label>Google AI Studio API key</label>
+            <input id="geminiKey" placeholder="Paste Gemini API key" /></div>
+          <div class="col-3"><label>Model</label>
+            <select id="geminiModel">
+              <option value="gemini-2.0-flash" selected>gemini-2.0-flash</option>
+              <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+            </select></div>
+          <div class="col-3"><label>Lookback</label>
+            <select id="geminiNewsWindow">
+              <option value="1">Last 24h</option>
+              <option value="3" selected>Last 3 days</option>
+              <option value="7">Last 7 days</option>
+            </select></div>
+          <div class="col-12 btns">
+            <button onclick="saveGeminiSettings()">Save settings</button>
+            <button class="secondary" onclick="fetchGeminiNews()">Fetch news</button>
+            <button class="ghost" onclick="clearNewsCache()">Clear cache</button>
+          </div>
+          <div class="col-12"><div class="status" id="newsStatus"></div></div>
+        </div>
+        <p class="footnote">Uses Gemini with Google Search grounding. JSON mode disabled — grounding and JSON mime type cannot be combined.</p>
+      </div>
+      <div class="card">
+        <h2>How it works</h2>
+        <div class="code">1. Paste Google AI Studio key.
+2. Click Fetch news.
+3. Gemini returns recent headlines, summaries,
+   sentiment, and source URLs per ticker.
+4. Results cached in browser.</div>
+      </div>
+    </div>
+    <div class="card"><h2>News feed</h2><div id="geminiNewsList"></div></div>
+  </div>
+
+  <!-- TRADE (Engine) -->
+  <div id="engine" class="tab">
+    <div class="card"><div class="metrics-5" id="engineMetrics"></div></div>
+
+    <div class="card">
+      <h2>Adjust existing positions</h2>
+      <p class="small">Enter a USD amount and click Buy or Sell to shift weights. Fetch quotes first so prices are live. ✕ closes the entire position.</p>
+      <table id="rebalanceTable"></table>
+    </div>
+
+    <div class="card">
+      <h2>Add new position</h2>
+      <div class="row">
+        <div class="col-3"><label>Ticker</label>
+          <input id="newTicker" placeholder="e.g. AAPL" oninput="this.value=this.value.toUpperCase()" /></div>
+        <div class="col-3"><label>Name (optional)</label>
+          <input id="newTickerName" placeholder="e.g. Apple Inc." /></div>
+        <div class="col-2"><label>&nbsp;</label>
+          <button onclick="fetchNewTickerPrice()">Fetch price</button></div>
+        <div class="col-2"><label>Live price (USD)</label>
+          <input id="newTickerPrice" type="number" placeholder="0.00" readonly
+            style="background:#0a1128;color:#7aa2ff;font-weight:700;" /></div>
+        <div class="col-2"><label>Amount to buy (USD)</label>
+          <input id="newTickerAmount" type="number" placeholder="0.00" min="0.01" step="1" /></div>
+        <div class="col-12 btns">
+          <button onclick="executeNewPosition()">Add to portfolio</button>
+          <button class="ghost" onclick="clearNewPositionForm()">Clear</button>
+        </div>
+        <div class="col-12"><div class="status" id="newPositionStatus"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CASH -->
+  <div id="cash" class="tab">
+    <div class="card"><div class="metrics-5" id="cashMetrics"></div></div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h2>Deposit cash</h2>
+        <p class="small">Add external capital to the portfolio. This increases NAV.</p>
+        <div class="row">
+          <div class="col-6"><label>Amount (USD)</label>
+            <input id="depositAmount" type="number" placeholder="0.00" min="0.01" step="1" /></div>
+          <div class="col-6"><label>Note (optional)</label>
+            <input id="depositNote" placeholder="e.g. Monthly contribution" /></div>
+          <div class="col-12 btns">
+            <button onclick="depositCash()">Deposit</button>
+          </div>
+          <div class="col-12"><div class="status" id="depositStatus"></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Withdraw cash</h2>
+        <p class="small">Remove cash from the portfolio. Cannot exceed available cash balance.</p>
+        <div class="row">
+          <div class="col-6"><label>Amount (USD)</label>
+            <input id="withdrawAmount" type="number" placeholder="0.00" min="0.01" step="1" /></div>
+          <div class="col-6"><label>Note (optional)</label>
+            <input id="withdrawNote" placeholder="e.g. Profit taking" /></div>
+          <div class="col-12 btns">
+            <button class="secondary" onclick="withdrawCash()">Withdraw</button>
+          </div>
+          <div class="col-12"><div class="status" id="withdrawStatus"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Reset cash balance</h2>
+      <p class="small">Override the cash balance directly — useful to correct a discrepancy. Logs the adjustment.</p>
+      <div class="row">
+        <div class="col-4"><label>Set cash to (USD)</label>
+          <input id="resetCashAmount" type="number" placeholder="0.00" min="0" step="1" /></div>
+        <div class="col-8"><label>Reason</label>
+          <input id="resetCashNote" placeholder="e.g. Correcting opening balance" /></div>
+        <div class="col-12 btns">
+          <button class="warn" onclick="resetCashBalance()">Set cash balance</button>
+        </div>
+        <div class="col-12"><div class="status" id="resetCashStatus"></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Cash flow log</h2>
+      <table id="cashLogTable"></table>
+    </div>
+  </div>
+
+  <!-- LOGS -->
+  <div id="log" class="tab">
+
+    <!-- NAV Chart -->
+    <div class="card">
+      <div class="split" style="align-items:center;margin-bottom:4px;">
+        <h2 style="margin:0;">Portfolio NAV</h2>
+        <span class="pill" id="navChartRange">—</span>
+      </div>
+      <svg id="chart" viewBox="0 0 960 260" style="width:100%;display:block;"></svg>
+    </div>
+
+    <!-- Component price chart -->
+    <div class="card" style="margin-top:16px;">
+      <div class="split" style="align-items:center;margin-bottom:8px;">
+        <h2 style="margin:0;">Component prices</h2>
+        <div id="componentLegend" style="display:flex;flex-wrap:wrap;gap:8px;font-size:11px;"></div>
+      </div>
+      <p class="footnote" style="margin-bottom:8px;">Dashed line = average cost basis per position. Populated each time you fetch quotes.</p>
+      <svg id="componentChart" viewBox="0 0 960 280" style="width:100%;display:block;"></svg>
+    </div>
+
+    <!-- Trade log + Rebalance log -->
+    <div class="grid grid-2" style="margin-top:16px;">
+      <div class="card">
+        <h2>Trade log</h2>
+        <div style="overflow-x:auto;"><table id="tradeTable"></table></div>
+      </div>
+      <div class="card">
+        <h2>Rebalance log</h2>
+        <div id="rebalanceLogList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SK = {
+    holdings:'pp2_holdings', cash:'pp2_cash', trades:'pp2_trades',
+    ai:'pp2_ai_log', risk:'pp2_risk_log', valuation:'pp2_valuation',
+    prices:'pp2_price_history', news:'pp2_news', settings:'pp2_settings',
+    gemini:'pp2_gemini', lastRefresh:'pp2_last_refresh', cashLog:'pp2_cash_log',
+    aiBasket:'pp2_ai_basket', aiThesis:'pp2_ai_thesis',
+    rebalanceLog:'pp2_rebalance_log', priceSnap:'pp2_price_snaps'
+  };
+
+  const DEFAULT_BASKET = [
+    {ticker:'NVDA', name:'NVIDIA',             targetWeight:0.15, why:'AI accelerator leader and capex beneficiary.'},
+    {ticker:'TSM',  name:'TSMC ADR',           targetWeight:0.15, why:'Leading-edge foundry backbone for advanced chips.'},
+    {ticker:'ASML', name:'ASML Holding',       targetWeight:0.10, why:'Critical lithography supplier with AI order leverage.'},
+    {ticker:'MELI', name:'MercadoLibre',       targetWeight:0.10, why:'LatAm ecommerce and fintech compounder.'},
+    {ticker:'IBN',  name:'ICICI Bank ADR',     targetWeight:0.10, why:'Indian private-sector bank with structural growth.'},
+    {ticker:'EWJ',  name:'iShares MSCI Japan ETF',      targetWeight:0.10, why:'Japan governance and reform sleeve.'},
+    {ticker:'IEF',  name:'iShares 7-10yr Treasury ETF', targetWeight:0.15, why:'High-quality duration sleeve.'},
+    {ticker:'LQD',  name:'iShares IG Corporate Bond ETF',targetWeight:0.15, why:'Investment-grade credit carry sleeve.'}
+  ];
+
+  const DEF_SETTINGS = {
+    startingCapital:1000, initialCashBufferPct:5, minCashBufferPct:5,
+    maxWeightPct:20, maxTradePct:3, turnoverCapPct:10,
+    buyMomentumPct:2, sellMomentumPct:-2, cooldownHours:8,
+    lookbackDays:45, newsLookback:3
+  };
+  const DEF_GEMINI = {apiKey:'', model:'gemini-2.0-flash', newsWindowDays:3};
+
+  // ── State ──────────────────────────────────────────────────────────────
+  function load(key, fb) {
+    try { const r=localStorage.getItem(key); return r ? JSON.parse(r) : structuredClone(fb); }
+    catch(e) { return structuredClone(fb); }
+  }
+  function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+  let settings  = load(SK.settings,  DEF_SETTINGS);
+  let gemini    = load(SK.gemini,    DEF_GEMINI);
+  let holdings  = load(SK.holdings,  []);
+  let cashUSD   = load(SK.cash,      null);
+  let tradeLog  = load(SK.trades,    []);
+  let aiLog     = load(SK.ai,        []);
+  let riskLog   = load(SK.risk,      []);
+  let valuation = load(SK.valuation, []);
+  let priceHist = load(SK.prices,    {});
+  let newsState = load(SK.news,      []);
+  let cashLog   = load(SK.cashLog,   []);
+  let aiBasket  = load(SK.aiBasket,  null);
+  let aiThesis  = load(SK.aiThesis,  null);
+  let rebalanceLog = load(SK.rebalanceLog, []);
+  let priceSnap    = load(SK.priceSnap,    []);
+
+  // ── Helpers ────────────────────────────────────────────────────────────
+  const todayISO    = ()  => new Date().toISOString().slice(0,10);
+  const nowISO      = ()  => new Date().toISOString();
+  const toUSD       = x  => `$${Number(x||0).toFixed(2)}`;
+  const toPct       = x  => (x===null||x===undefined||!isFinite(x)) ? '-' : `${Number(x).toFixed(2)}%`;
+  const safeNum     = (x,d=0) => { const n=Number(x); return isFinite(n)?n:d; };
+  const cloneObj    = o  => JSON.parse(JSON.stringify(o));
+
+  function getPortfolioValue() {
+    return Number((holdings.reduce((s,h)=>s+safeNum(h.currentValueUSD,safeNum(h.initialUSD,0)),0)+safeNum(cashUSD,0)).toFixed(2));
+  }
+
+  function persistAll() {
+    save(SK.settings,  settings);
+    save(SK.gemini,    gemini);
+    save(SK.holdings,  holdings);
+    save(SK.cash,      cashUSD);
+    save(SK.trades,    tradeLog);
+    save(SK.ai,        aiLog);
+    save(SK.risk,      riskLog);
+    save(SK.valuation, valuation);
+    save(SK.prices,    priceHist);
+    save(SK.news,      newsState);
+    save(SK.cashLog,   cashLog);
+    save(SK.aiBasket,  aiBasket);
+    save(SK.aiThesis,  aiThesis);
+    save(SK.rebalanceLog, rebalanceLog);
+    save(SK.priceSnap,    priceSnap);
+  }
+
+  function markValuation(note) {
+    const item = {date:todayISO(), portfolioValueUSD:getPortfolioValue(),
+      cashUSD:Number(safeNum(cashUSD,0).toFixed(2)), note};
+    const last = valuation[valuation.length-1];
+    if (last && last.date===item.date && last.note===note) valuation[valuation.length-1]=item;
+    else valuation.push(item);
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────────
+  function initializePortfolio(force=false, overrideBasket=null) {
+    if (holdings.length && cashUSD!==null && !force) return;
+    const basket = overrideBasket || aiBasket || DEFAULT_BASKET;
+    const capital = safeNum(settings.startingCapital, 1000);
+    const cashPct = Math.max(0, safeNum(settings.initialCashBufferPct,5))/100;
+    cashUSD = Number((capital*cashPct).toFixed(2));
+    const investable = capital - cashUSD;
+    holdings = basket.map(h => ({
+      ticker:h.ticker, name:h.name, targetWeight:h.targetWeight,
+      maxWeightPct:safeNum(settings.maxWeightPct,20),
+      initialUSD:Number((investable*h.targetWeight).toFixed(2)),
+      shares:null, lastPrice:null, lastClose:null,
+      currentValueUSD:Number((investable*h.targetWeight).toFixed(2)),
+      momentum1dPct:null, momentum5dPct:null, momentum20dPct:null,
+      status:'Awaiting first quote fetch', why:h.why, lastTradeAt:null
+    }));
+    tradeLog = [{timestamp:nowISO(), action:'INIT', ticker:'ALL',
+      tradeUSD:investable, shares:'-',
+      reason:`Initialized with ${toUSD(capital)} capital and ${toUSD(cashUSD)} cash reserve.`}];
+    aiLog=[]; riskLog=[];
+    valuation=[{date:todayISO(), portfolioValueUSD:Number(capital.toFixed(2)),
+      cashUSD:Number(cashUSD.toFixed(2)), note:'Initial capital'}];
+    priceHist={}; newsState=[];
+    cashLog=[{timestamp:nowISO(), type:'DEPOSIT',
+      amount:capital, balance:cashUSD,
+      note:`Portfolio initialised — ${toUSD(investable)} allocated to basket, ${toUSD(cashUSD)} held as cash.`}];
+    persistAll();
+  }
+
+  function normalizeState() {
+    holdings = (holdings||[]).map(h=>({
+      ...h,
+      initialUSD:h.initialUSD??h.initialEUR??0,
+      currentValueUSD:h.currentValueUSD??h.currentValueEUR??h.initialUSD??0,
+      maxWeightPct:h.maxWeightPct??settings.maxWeightPct,
+      why:h.why||'', lastTradeAt:h.lastTradeAt||null
+    }));
+    if (!Number.isFinite(safeNum(cashUSD,NaN))) {
+      const leg = load('pp_cash', null);
+      cashUSD = Number.isFinite(safeNum(leg,NaN)) ? Number(leg) : null;
+    }
+    tradeLog  = (tradeLog||[]).map(t=>({...t, tradeUSD:t.tradeUSD??t.tradeEUR??'-', timestamp:t.timestamp||nowISO()}));
+    valuation = (valuation||[]).map(v=>({...v, portfolioValueUSD:v.portfolioValueUSD??v.portfolioValueEUR??0, cashUSD:v.cashUSD??0}));
+    if (!Array.isArray(aiLog))   aiLog=[];
+    if (!Array.isArray(riskLog)) riskLog=[];
+    if (!priceHist||typeof priceHist!=='object') priceHist={};
+    if (!Array.isArray(newsState)) newsState=[];
+    if (!Array.isArray(cashLog)) cashLog=[];
+    if (aiBasket && !Array.isArray(aiBasket)) aiBasket=null;
+    if (!Array.isArray(rebalanceLog)) rebalanceLog=[];
+    if (!Array.isArray(priceSnap)) priceSnap=[];
+    // If no holdings exist at all, always seed (using aiBasket if present)
+    if (!holdings.length) { initializePortfolio(true); return; }
+    persistAll();
+  }
+
+  // ── Manual basket builder ──────────────────────────────────────────────
+  function addBasketRow(ticker='', name='', wt='', why='') {
+    const tbody = document.getElementById('basketRows');
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td style="padding:3px 4px;"><input style="width:68px;font-size:12px;padding:3px 5px;" placeholder="NVDA" value="${ticker}"/></td>
+      <td style="padding:3px 4px;"><input style="width:110px;font-size:12px;padding:3px 5px;" placeholder="Company name" value="${name}"/></td>
+      <td style="padding:3px 4px;"><input type="number" min="0" max="100" step="0.1" style="width:56px;font-size:12px;padding:3px 5px;" placeholder="20" value="${wt}"/></td>
+      <td style="padding:3px 4px;"><input style="width:160px;font-size:12px;padding:3px 5px;" placeholder="One-line rationale" value="${why}"/></td>
+      <td style="padding:3px 4px;"><button onclick="this.closest('tr').remove()" style="font-size:11px;padding:2px 7px;background:transparent;border:1px solid var(--border);cursor:pointer;border-radius:4px;">✕</button></td>`;
+    tbody.appendChild(row);
+  }
+
+  function readBasketFromForm() {
+    const rows = document.querySelectorAll('#basketRows tr');
+    const picks = [];
+    rows.forEach(row => {
+      const inputs = row.querySelectorAll('input');
+      const ticker = (inputs[0]?.value||'').trim().toUpperCase();
+      const name   = (inputs[1]?.value||'').trim() || ticker;
+      const wt     = parseFloat(inputs[2]?.value||'0') || 0;
+      const why    = (inputs[3]?.value||'').trim();
+      if (ticker && wt > 0) picks.push({ticker, name, targetWeight: wt, why});
+    });
+    if (!picks.length) return null;
+    const total = picks.reduce((s,p) => s + p.targetWeight, 0);
+    return picks.map(p => ({...p, targetWeight: Number((p.targetWeight / total).toFixed(4))}));
+  }
+
+  // ── AI prompt generator ────────────────────────────────────────────────
+  async function generatePortfolioPrompt() {
+    const key = gemini.apiKey || load(SK.gemini, DEF_GEMINI).apiKey;
+    if (!key) {
+      setStatus('promptStatus', 'Paste a Gemini API key in the News tab first.', false);
+      return;
+    }
+    const btn = document.getElementById('genPromptBtn');
+    if (btn) { btn.textContent='⏳ Generating…'; btn.disabled=true; }
+    setStatus('promptStatus', 'Asking Gemini to draft the prompt…');
+    document.getElementById('promptOutput').style.display = 'none';
+
+    const today = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+    const metaPrompt = `Today is ${today}.
+
+You are an expert prompt engineer specialising in financial analysis instructions for large language models.
+
+Write a single, self-contained prompt that a user can paste directly into any AI assistant (ChatGPT, Claude, Perplexity, Gemini, etc.) to receive a high-quality, hedge-fund-style US equity portfolio.
+
+The prompt you write must instruct the AI to:
+1. Use current market conditions, macro backdrop, sector momentum, earnings trends, and valuation as of today's date.
+2. Write an investment thesis of approximately 300 words covering: macro view, key drivers, sector tilts, risk factors, and overall portfolio strategy.
+3. Select 6–10 US-listed equity tickers (common stock or ADR only — no ETFs, no bonds, no crypto).
+4. Long-only. Weights must sum to 1.0. Max single position 0.25. Higher conviction = higher weight.
+5. Return output in this EXACT format — thesis first, then a raw JSON array with no markdown fences, no wrapper object:
+
+INVESTMENT THESIS:
+[~300 word thesis here]
+
+PICKS:
+[{"ticker":"NVDA","name":"NVIDIA Corporation","weight":0.22,"why":"One sentence catalyst."},...]
+
+The JSON array must use exactly these four keys: ticker, name, weight, why. No other keys. No trailing text after the array.
+
+Write only the prompt text itself — no preamble, no explanation, no meta-commentary.`;
+
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(gemini.model||'gemini-2.0-flash')}:generateContent?key=${encodeURIComponent(key)}`;
+      const res = await fetch(endpoint, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          contents:[{parts:[{text:metaPrompt}]}],
+          generationConfig:{ temperature:0.5, maxOutputTokens:4096 }
+        })
+      });
+      if (!res.ok) throw new Error(`Gemini API ${res.status}: ${(await res.text()).slice(0,200)}`);
+      const data = await res.json();
+      const prompt = (data?.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('').trim();
+      if (!prompt) throw new Error('Empty response from Gemini.');
+
+      document.getElementById('promptText').value = prompt;
+      const ta = document.getElementById('promptText');
+      ta.value = prompt;
+      ta.style.height = 'auto';
+      ta.style.height = Math.min(ta.scrollHeight, 1200) + 'px';
+      document.getElementById('promptOutput').style.display = 'block';
+      document.getElementById('copyConfirm').style.display = 'none';
+      setStatus('promptStatus', '✓ Prompt ready — copy and paste into any AI.', true);
+    } catch(e) {
+      setStatus('promptStatus', `Error: ${e.message}`, false);
+    } finally {
+      if (btn) { btn.textContent='✦ Generate prompt'; btn.disabled=false; }
+    }
+  }
+
+  function copyPrompt() {
+    const ta = document.getElementById('promptText');
+    if (!ta || !ta.value) return;
+    navigator.clipboard.writeText(ta.value).then(() => {
+      const el = document.getElementById('copyConfirm');
+      if (el) { el.style.display='inline'; setTimeout(()=>el.style.display='none', 2000); }
+    }).catch(() => { ta.select(); document.execCommand('copy'); });
+  }
+
+  function importPicksFromJson() {
+    const raw = (document.getElementById('jsonImportField').value || '').trim();
+    if (!raw) return setStatus('importStatus', 'Paste a JSON array first.', false);
+
+    let picks;
+    try {
+      // Find the [ ... ] array — tolerates surrounding text (thesis above it, etc.)
+      const s = raw.indexOf('['), e = raw.lastIndexOf(']');
+      if (s < 0 || e <= s) throw new Error('No JSON array found.');
+      const clean = raw.slice(s, e + 1)
+        .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '')
+        .replace(/\r\n|\r/g, ' ').replace(/\n/g, ' ').replace(/\t/g, ' ');
+      picks = JSON.parse(clean);
+      if (!Array.isArray(picks) || !picks.length) throw new Error('Array is empty.');
+    } catch(e) {
+      return setStatus('importStatus', `Parse error: ${e.message}`, false);
+    }
+
+    // Normalise keys — accept weight or targetWeight
+    const normalised = picks.map(p => ({
+      ticker: String(p.ticker || '').toUpperCase().trim(),
+      name:   String(p.name   || p.ticker || '').trim(),
+      weight: safeNum(p.weight ?? p.targetWeight, 0),
+      why:    String(p.why    || p.reason || '').trim()
+    })).filter(p => p.ticker && p.weight > 0);
+
+    if (!normalised.length)
+      return setStatus('importStatus', 'No valid picks found (need ticker + weight > 0).', false);
+
+    // Populate builder rows
+    document.getElementById('basketRows').innerHTML = '';
+    normalised.forEach(p => addBasketRow(p.ticker, p.name, (p.weight * 100).toFixed(1), p.why));
+    document.getElementById('jsonImportField').value = '';
+    setStatus('importStatus', `✓ Imported ${normalised.length} picks. Review weights, then Rebalance or Reset.`, true);
+  }
+
+  function populateBuilderFromCurrent() {
+    document.getElementById('basketRows').innerHTML = '';
+    const basket = aiBasket || DEFAULT_BASKET;
+    basket.forEach(h => addBasketRow(h.ticker, h.name, (h.targetWeight*100).toFixed(1), h.why||''));
+    if (aiThesis) document.getElementById('manualThesis').value = aiThesis;
+  }
+
+  // Rebalance: liquidate all at current NAV, reinvest into new basket. Logs + price history preserved.
+  function manualRebalance() {
+    const picks = readBasketFromForm();
+    if (!picks) return setStatus('resetStatus', 'Add at least one ticker with a non-zero weight.', false);
+    if (!confirm(`Rebalance portfolio?\n\nAll ${holdings.length} positions will be liquidated at current mark and reinvested into ${picks.length} new positions at current NAV.\n\nLogs and price history are preserved.`)) return;
+
+    const nav = getPortfolioValue();
+    const ts  = nowISO();
+
+    // Liquidate all current holdings back to cash
+    let proceeds = safeNum(cashUSD, 0);
+    holdings.forEach(h => {
+      const val = safeNum(h.currentValueUSD, safeNum(h.initialUSD, 0));
+      if (val > 0) {
+        proceeds += val;
+        tradeLog.unshift({timestamp:ts, action:'SELL', ticker:h.ticker,
+          tradeUSD:val, shares:safeNum(h.shares,0), reason:'Rebalance — full liquidation'});
+        cashLog.unshift({timestamp:ts, type:'SELL', amount:val,
+          balance:proceeds, note:`Rebalance liquidation: ${h.ticker}`});
+      }
+    });
+
+    // Save thesis
+    aiThesis = document.getElementById('manualThesis').value.trim() || null;
+    aiBasket  = picks;
+
+    // Build new holdings (reinvest full NAV, no cash buffer)
+    cashUSD = 0;
+    holdings = picks.map(p => ({
+      ticker: p.ticker, name: p.name, targetWeight: p.targetWeight,
+      maxWeightPct: safeNum(settings.maxWeightPct, 20),
+      initialUSD: Number((nav * p.targetWeight).toFixed(2)),
+      shares: null, lastPrice: null, lastClose: null,
+      currentValueUSD: Number((nav * p.targetWeight).toFixed(2)),
+      momentum1dPct:null, momentum5dPct:null, momentum20dPct:null,
+      status: 'Rebalanced — awaiting quote fetch', why: p.why, lastTradeAt: ts
+    }));
+
+    picks.forEach(p => {
+      const amt = Number((nav * p.targetWeight).toFixed(2));
+      tradeLog.unshift({timestamp:ts, action:'BUY', ticker:p.ticker,
+        tradeUSD:amt, shares:'-', reason:'Rebalance — new allocation'});
+      cashLog.unshift({timestamp:ts, type:'BUY', amount:-amt,
+        balance:cashUSD, note:`Rebalance entry: ${p.ticker}`});
+    });
+
+    markValuation('Rebalance');
+    rebalanceLog.unshift({
+      timestamp: ts,
+      navAtRebalance: nav,
+      positionCount: picks.length,
+      picks: picks.map(p => ({ticker:p.ticker, name:p.name, weight:p.targetWeight, why:p.why}))
+    });
+    persistAll(); renderAll();
+    setStatus('resetStatus', `✓ Rebalanced ${picks.length} positions at NAV ${toUSD(nav)}. Fetch quotes to mark to market.`);
+  }
+
+  // Full reset: wipe everything, restart at $1,000
+  function manualReset() {
+    const picks = readBasketFromForm();
+    if (!picks) return setStatus('resetStatus', 'Add at least one ticker with a non-zero weight.', false);
+    if (!confirm('Full reset?\n\nAll holdings, logs, cash, and price history will be wiped.\nPortfolio restarts at $1,000.')) return;
+
+    Object.values(SK).forEach(k => localStorage.removeItem(k));
+    holdings=[]; cashUSD=null; tradeLog=[]; aiLog=[]; riskLog=[];
+    valuation=[]; priceHist=[]; newsState=[]; cashLog=[];
+    rebalanceLog=[]; priceSnap=[];
+
+    aiBasket  = picks;
+    aiThesis  = document.getElementById('manualThesis').value.trim() || null;
+    settings.startingCapital = 1000;
+
+    initializePortfolio(true, picks);
+    renderAll();
+    setStatus('resetStatus', `✓ Portfolio reset to $1,000 with ${picks.length} positions.`);
+  }
+
+  // ── UI helpers ─────────────────────────────────────────────────────────
+  function showTab(id, btn) {
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+    if (id==='log') { drawChart(); drawComponentChart(); }
+  }
+
+  function setStatus(id, msg, good=true) {
+    const el=document.getElementById(id);
+    if (!el) return;
+    el.innerHTML=`<span class="${good?'good':'bad'}">${msg}</span>`;
+  }
+
+  function getFinnhubKey() {
+    return document.getElementById('finnhubKey').value.trim() || localStorage.getItem('pp2_finnhub_key') || '';
+  }
+
+  function saveFinnhubKey() {
+    const k=document.getElementById('finnhubKey').value.trim();
+    localStorage.setItem('pp2_finnhub_key',k);
+    setStatus('marketStatus', k?'Finnhub key saved.':'Finnhub key cleared.');
+  }
+
+  function applyFormValues() {
+    document.getElementById('lookbackDays').value  = settings.lookbackDays;
+    document.getElementById('newsLookback').value  = settings.newsLookback;
+    document.getElementById('geminiKey').value     = gemini.apiKey||'';
+    document.getElementById('geminiModel').value   = gemini.model||'gemini-2.0-flash';
+    document.getElementById('geminiNewsWindow').value = String(gemini.newsWindowDays||3);
+    document.getElementById('finnhubKey').value    = localStorage.getItem('pp2_finnhub_key')||'';
+  }
+
+  function saveGeminiSettings() {
+    gemini = {
+      apiKey:document.getElementById('geminiKey').value.trim(),
+      model:document.getElementById('geminiModel').value,
+      newsWindowDays:safeNum(document.getElementById('geminiNewsWindow').value,3)
+    };
+    persistAll();
+    setStatus('newsStatus', gemini.apiKey?'Gemini settings saved.':'Gemini key cleared.', !!gemini.apiKey);
+  }
+
+  // ── Portfolio analysis (Gemini) ────────────────────────────────────────
+  async function fetchPortfolioAnalysis() {
+    const key = gemini.apiKey || load(SK.gemini, DEF_GEMINI).apiKey;
+    if (!key) { setStatus('analysisStatus','Paste a Gemini API key in the News tab first.',false); return; }
+
+    const priced = holdings.filter(h => safeNum(h.lastPrice,0)>0);
+    if (!priced.length) { setStatus('analysisStatus','Fetch quotes first — need live prices to analyse.',false); return; }
+
+    const btn = document.getElementById('analysisBtn');
+    if (btn) { btn.textContent='⏳ Analysing…'; btn.disabled=true; }
+    document.getElementById('analysisOutput').style.display='none';
+    setStatus('analysisStatus','Asking Gemini to analyse your portfolio against current market conditions…');
+
+    const nav = getPortfolioValue();
+    const today = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+    const positionLines = priced.map(h => {
+      const wt = (safeNum(h.currentValueUSD,0)/nav*100).toFixed(1);
+      const vs5  = h.momentum5dPct!=null  ? `${h.momentum5dPct>=0?'+':''}${h.momentum5dPct.toFixed(1)}% vs SMA5` : '';
+      const vs20 = h.momentum20dPct!=null ? `${h.momentum20dPct>=0?'+':''}${h.momentum20dPct.toFixed(1)}% vs SMA20` : '';
+      return `- ${h.ticker} (${h.name}): ${wt}% of NAV, price $${h.lastPrice.toFixed(2)} ${[vs5,vs20].filter(Boolean).join(', ')}`;
+    }).join('\n');
+
+    const prompt = `Today is ${today}. You are a senior risk analyst at a hedge fund reviewing a paper portfolio.
+
+CURRENT PORTFOLIO (NAV: ${toUSD(nav)}):
+${positionLines}
+Cash: ${toUSD(cashUSD)} (${(safeNum(cashUSD,0)/nav*100).toFixed(1)}% of NAV)
+
+Using current market conditions, recent macro developments, sector trends, and earnings newsflow, provide:
+
+1. KEY RISKS (3-5 bullet points): Identify the most material risks to this specific portfolio right now — macro, sector, single-stock, concentration, and liquidity risks. Be specific to the positions held.
+
+2. RECOMMENDATIONS (3-5 bullet points): Actionable suggestions to improve risk-adjusted returns or reduce tail risk — position sizing, hedges, rotation ideas, or cash deployment. Reference specific tickers.
+
+Format your response as:
+RISKS:
+• [risk 1]
+• [risk 2]
+...
+
+RECOMMENDATIONS:
+• [rec 1]
+• [rec 2]
+...
+
+Be direct and specific. No generic disclaimers.`;
+
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(gemini.model||'gemini-2.0-flash')}:generateContent?key=${encodeURIComponent(key)}`;
+    try {
+      const res = await fetch(endpoint, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          contents:[{parts:[{text:prompt}]}],
+          tools:[{google_search:{}}],
+          generationConfig:{ temperature:0.3, maxOutputTokens:2048 }
+        })
+      });
+      if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0,200)}`);
+      const data = await res.json();
+      const text = (data?.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('').trim();
+      if (!text) throw new Error('Empty response.');
+
+      const ta = document.getElementById('analysisText');
+      ta.value = text;
+      ta.style.height = 'auto';
+      ta.style.height = Math.min(ta.scrollHeight, 900) + 'px';
+      document.getElementById('analysisOutput').style.display = 'block';
+      setStatus('analysisStatus', `✓ Analysis complete — ${today}`, true);
+    } catch(e) {
+      setStatus('analysisStatus',`Error: ${e.message}`,false);
+    } finally {
+      if (btn) { btn.textContent='✦ Analyse with Gemini'; btn.disabled=false; }
+    }
+  }
+
+  function clearNewsCache() {
+    newsState=[]; persistAll(); renderAll();
+    setStatus('newsStatus','News cache cleared.');
+  }
+
+  // ── Market data ────────────────────────────────────────────────────────
+  async function fetchJson(url) {
+    const r=await fetch(url);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  }
+
+  async function fetchTickerQuote(ticker, key) {
+    return fetchJson(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(ticker)}&token=${encodeURIComponent(key)}`);
+  }
+
+  async function fetchTickerCloses(ticker, key) {
+    const now        = Math.floor(Date.now() / 1000);
+    const fortyDaysAgo = now - 40 * 24 * 60 * 60;
+    const url = `https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(ticker)}&resolution=D&from=${fortyDaysAgo}&to=${now}&token=${encodeURIComponent(key)}`;
+    const d = await fetchJson(url);
+    if (!d || d.s !== 'ok' || !Array.isArray(d.c) || d.c.length < 2) return null;
+    // Return only valid (non-zero) closes, oldest → newest
+    return d.c.filter(c => c > 0);
+  }
+
+  function sma(closes, n) {
+    if (!closes || closes.length < n) return null;
+    const slice = closes.slice(-n); // last N trading days
+    return Number((slice.reduce((a,b) => a+b, 0) / n).toFixed(4));
+  }
+
+  function pctVsSma(price, avg) {
+    if (!avg || !price) return null;
+    return Number(((price - avg) / avg * 100).toFixed(2));
+  }
+
+  async function fetchLiveMarketData() {
+    const key = getFinnhubKey();
+    if (!key) { setStatus('marketStatus','Paste a Finnhub API key first.',false); return; }
+    const tickers = holdings.map(h=>h.ticker);
+    if (!tickers.length) { setStatus('marketStatus','No holdings to fetch.',false); return; }
+    const failures=[];
+    let done=0;
+
+    for (const ticker of tickers) {
+      setStatus('marketStatus',`Fetching ${ticker}… (${done+1}/${tickers.length})`);
+      try {
+        // 1. Quote — current price + prev close
+        const q   = await fetchTickerQuote(ticker, key);
+        const px  = safeNum(q.c,0)>0 ? safeNum(q.c) : (safeNum(q.pc,0)>0 ? safeNum(q.pc) : null);
+        const prev= safeNum(q.pc,0)>0 ? safeNum(q.pc) : null;
+        if (!px) failures.push(`${ticker}: no price`);
+
+        // 2. Daily closes → compute 5D and 20D SMA locally
+        let sma5=null, sma20=null;
+        try {
+          const closes = await fetchTickerCloses(ticker, key);
+          sma5  = sma(closes, 5);
+          sma20 = sma(closes, 20);
+        } catch(_) { /* optional — don't block the quote */ }
+
+        holdings = holdings.map(h => h.ticker!==ticker ? h : {
+          ...h,
+          lastPrice:   px   ?? h.lastPrice,
+          lastClose:   prev ?? h.lastClose,
+          sma5, sma20,
+          momentum5dPct:  pctVsSma(px, sma5),
+          momentum20dPct: pctVsSma(px, sma20),
+          status: px ? 'Quote updated' : 'No valid quote; using prior price'
+        });
+      } catch(e) {
+        failures.push(`${ticker}: ${e.message}`);
+        holdings = holdings.map(h => h.ticker!==ticker ? h : {...h, status:`Fetch failed: ${e.message}`});
+      }
+      done++;
+    }
+
+    localStorage.setItem(SK.lastRefresh, new Date().toLocaleString());
+    // Daily price snapshot for component chart
+    const snap = {date: todayISO(), prices: {}};
+    holdings.forEach(h => { if (safeNum(h.lastPrice,0)>0) snap.prices[h.ticker]=h.lastPrice; });
+    if (Object.keys(snap.prices).length) {
+      priceSnap = priceSnap.filter(s => s.date !== snap.date);
+      priceSnap.push(snap);
+      if (priceSnap.length > 90) priceSnap = priceSnap.slice(-90);
+    }
+    refreshPortfolioMark(true);
+    persistAll(); renderAll();
+    setStatus('marketStatus', failures.length
+      ? `Done with issues: ${failures.join(' | ')}`
+      : `Updated ${tickers.length} tickers — price, prev close, 5D/20D SMA.`);
+  }
+
+  function refreshPortfolioMark(fromFetch=false) {
+    holdings = holdings.map(h => {
+      if (!(safeNum(h.lastPrice,0)>0)) return {...h, status:h.status||'No price available'};
+      const seed = safeNum(h.initialUSD, safeNum(h.currentValueUSD,0));
+      const shares = (h.shares===null||h.shares===undefined) ? seed/safeNum(h.lastPrice,1) : safeNum(h.shares,0);
+      return {...h, shares:Number(shares.toFixed(6)),
+        currentValueUSD:Number((shares*safeNum(h.lastPrice,0)).toFixed(2)),
+        status:fromFetch?'Marked to market':'Re-marked'};
+    });
+    markValuation('Portfolio refreshed');
+    persistAll(); renderAll();
+    if (!fromFetch) setStatus('marketStatus','Re-marked from saved prices.');
+  }
+
+  function inferMomentumSignal(h) {
+    const vs5  = safeNum(h.momentum5dPct,  null);
+    const vs20 = safeNum(h.momentum20dPct, null);
+    if (vs5===null && vs20===null) return 'no data';
+    const bullish = (vs5!==null?vs5:0)>0 && (vs20!==null?vs20:0)>0;
+    const bearish = (vs5!==null?vs5:0)<0 && (vs20!==null?vs20:0)<0;
+    if (bullish) return 'above SMAs';
+    if (bearish) return 'below SMAs';
+    return 'mixed';
+  }
+
+  // ── Gemini news ────────────────────────────────────────────────────────
+  function parseJsonFromText(text) {
+    const raw=String(text||'').trim();
+    try { return JSON.parse(raw); } catch(e) {}
+    const s=raw.indexOf('{'), e=raw.lastIndexOf('}');
+    if (s>=0&&e>s) return JSON.parse(raw.slice(s,e+1));
+    throw new Error('Could not parse JSON from Gemini response.');
+  }
+
+  async function fetchGeminiNews() {
+    saveGeminiSettings();
+    if (!gemini.apiKey) { setStatus('newsStatus','Paste a Google AI Studio API key first.',false); return; }
+    setStatus('newsStatus','Fetching news with Gemini...');
+    const tickers=holdings.map(h=>h.ticker);
+    const prompt=[
+      'Return only valid JSON.',
+      'Find recent market-moving news for these tickers: '+tickers.join(', ')+'.',
+      'Lookback: last '+gemini.newsWindowDays+' day(s).',
+      'Up to 3 items per ticker.',
+      'Each item: ticker, headline, summary, sentiment, source, url, published_at.',
+      'Sentiment: positive|negative|neutral|mixed.',
+      'Return {"items":[...]} only. No markdown.'
+    ].join(' ');
+    const endpoint=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(gemini.model)}:generateContent?key=${encodeURIComponent(gemini.apiKey)}`;
+    try {
+      const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({contents:[{parts:[{text:prompt}]}],tools:[{google_search:{}}],generationConfig:{temperature:0.2}})});
+      if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0,300)}`);
+      const data=await res.json();
+      const text=(data?.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('\n');
+      const parsed=parseJsonFromText(text);
+      const items=Array.isArray(parsed.items)?parsed.items:[];
+      newsState=items.map((n,i)=>({
+        ticker:(n.ticker||'UNKNOWN').toUpperCase(), headline:n.headline||'Untitled',
+        summary:n.summary||'', url:n.url||'', source:n.source||'Gemini',
+        sentiment:n.sentiment||'neutral', datetime:n.published_at||nowISO(),
+        fetchedAt:nowISO(), rowId:`${Date.now()}_${i}`
+      }));
+      persistAll(); renderAll();
+      setStatus('newsStatus', items.length?`Fetched ${items.length} items.`:'No items returned.');
+    } catch(e) { setStatus('newsStatus',e.message,false); }
+  }
+
+  // ── Cash management ────────────────────────────────────────────────────
+  function depositCash() {
+    const amt  = safeNum(document.getElementById('depositAmount').value, 0);
+    const note = document.getElementById('depositNote').value.trim() || 'Cash deposit';
+    if (amt<=0) return setStatus('depositStatus','Enter a positive amount.',false);
+    cashUSD = Number((safeNum(cashUSD,0)+amt).toFixed(2));
+    cashLog.unshift({timestamp:nowISO(), type:'DEPOSIT', amount:amt,
+      balance:cashUSD, note});
+    markValuation('Cash deposit');
+    persistAll(); renderAll();
+    setStatus('depositStatus',`Deposited ${toUSD(amt)}. Cash balance: ${toUSD(cashUSD)}`);
+    document.getElementById('depositAmount').value='';
+    document.getElementById('depositNote').value='';
+  }
+
+  function withdrawCash() {
+    const amt  = safeNum(document.getElementById('withdrawAmount').value, 0);
+    const note = document.getElementById('withdrawNote').value.trim() || 'Cash withdrawal';
+    if (amt<=0) return setStatus('withdrawStatus','Enter a positive amount.',false);
+    if (safeNum(cashUSD,0)<amt)
+      return setStatus('withdrawStatus',`Insufficient cash — only ${toUSD(cashUSD)} available.`,false);
+    cashUSD = Number((safeNum(cashUSD,0)-amt).toFixed(2));
+    cashLog.unshift({timestamp:nowISO(), type:'WITHDRAW', amount:amt,
+      balance:cashUSD, note});
+    markValuation('Cash withdrawal');
+    persistAll(); renderAll();
+    setStatus('withdrawStatus',`Withdrew ${toUSD(amt)}. Cash balance: ${toUSD(cashUSD)}`);
+    document.getElementById('withdrawAmount').value='';
+    document.getElementById('withdrawNote').value='';
+  }
+
+  function resetCashBalance() {
+    const amt  = safeNum(document.getElementById('resetCashAmount').value, 0);
+    const note = document.getElementById('resetCashNote').value.trim() || 'Manual cash reset';
+    if (amt<0) return setStatus('resetCashStatus','Amount must be ≥ 0.',false);
+    const prior = safeNum(cashUSD,0);
+    cashUSD = Number(amt.toFixed(2));
+    const diff = cashUSD - prior;
+    cashLog.unshift({timestamp:nowISO(), type:'RESET',
+      amount:diff, balance:cashUSD,
+      note:`${note} (prior: ${toUSD(prior)} → new: ${toUSD(cashUSD)})`});
+    markValuation('Cash reset');
+    persistAll(); renderAll();
+    setStatus('resetCashStatus',`Cash balance set to ${toUSD(cashUSD)}.`);
+    document.getElementById('resetCashAmount').value='';
+    document.getElementById('resetCashNote').value='';
+  }
+
+  // ── Trade tab ──────────────────────────────────────────────────────────
+  function executeTrade(ticker, action) {
+    const inputEl  = document.getElementById('tradeAmt_'+ticker);
+    const statusEl = document.getElementById('tradeStatus_'+ticker);
+    const amtUSD   = safeNum(inputEl?.value, 0);
+    const fail = msg => { if(statusEl) statusEl.innerHTML=`<span class="bad">${msg}</span>`; };
+    const ok   = msg => { if(statusEl) statusEl.innerHTML=`<span class="good">${msg}</span>`; };
+    if (amtUSD<=0) return fail('Enter a positive USD amount.');
+    const h = holdings.find(x=>x.ticker===ticker);
+    if (!h) return fail('Holding not found.');
+    const price = safeNum(h.lastPrice,0);
+    if (!price) return fail('No price — fetch quotes in Portfolio tab first.');
+    if (action==='BUY') {
+      if (safeNum(cashUSD,0)<amtUSD) return fail(`Insufficient cash (${toUSD(cashUSD)}).`);
+      const shares=amtUSD/price;
+      h.shares = Number((safeNum(h.shares,0)+shares).toFixed(6));
+      h.currentValueUSD = Number((h.shares*price).toFixed(2));
+      cashUSD = Number((safeNum(cashUSD,0)-amtUSD).toFixed(2));
+      h.lastTradeAt=nowISO(); h.status='Manual buy';
+      cashLog.unshift({timestamp:nowISO(), type:'BUY', amount:-amtUSD,
+        balance:cashUSD, note:`Bought ${ticker} — ${shares.toFixed(4)} sh @ $${price.toFixed(2)}`});
+      tradeLog.unshift({timestamp:nowISO(), action:'BUY', ticker, tradeUSD:amtUSD,
+        shares:Number(shares.toFixed(6)), price});
+      ok(`Bought ${toUSD(amtUSD)} — ${shares.toFixed(4)} sh`);
+    } else {
+      const maxSell=safeNum(h.currentValueUSD,0);
+      if (maxSell<=0) return fail('Nothing to sell.');
+      const sellUSD=Math.min(amtUSD,maxSell);
+      const shares=sellUSD/price;
+      h.shares = Number(Math.max(0,safeNum(h.shares,0)-shares).toFixed(6));
+      h.currentValueUSD = Number((h.shares*price).toFixed(2));
+      cashUSD = Number((safeNum(cashUSD,0)+sellUSD).toFixed(2));
+      h.lastTradeAt=nowISO(); h.status='Manual sell';
+      cashLog.unshift({timestamp:nowISO(), type:'SELL', amount:sellUSD,
+        balance:cashUSD, note:`Sold ${ticker} — ${shares.toFixed(4)} sh @ $${price.toFixed(2)}`});
+      tradeLog.unshift({timestamp:nowISO(), action:'SELL', ticker, tradeUSD:sellUSD,
+        shares:Number(shares.toFixed(6)), price});
+      ok(sellUSD<amtUSD?`Sold ${toUSD(sellUSD)} (full position)`:`Sold ${toUSD(sellUSD)} — ${shares.toFixed(4)} sh`);
+    }
+    markValuation(`Manual ${action.toLowerCase()}: ${ticker}`);
+    persistAll();
+    if (inputEl) inputEl.value='';
+    renderAll();
+  }
+
+  function closePosition(ticker) {
+    if (!confirm(`Close entire ${ticker} position and return proceeds to cash?`)) return;
+    const h=holdings.find(x=>x.ticker===ticker);
+    if (!h) return;
+    const proceeds=safeNum(h.currentValueUSD,0);
+    if (proceeds>0) {
+      cashUSD=Number((safeNum(cashUSD,0)+proceeds).toFixed(2));
+      cashLog.unshift({timestamp:nowISO(), type:'SELL', amount:proceeds,
+        balance:cashUSD, note:`Closed position: ${ticker}`});
+      tradeLog.unshift({timestamp:nowISO(), action:'CLOSE', ticker, tradeUSD:proceeds,
+        shares:safeNum(h.shares,0), price:safeNum(h.lastPrice,0)||null});
+    }
+    holdings=holdings.filter(x=>x.ticker!==ticker);
+    markValuation(`Position closed: ${ticker}`);
+    persistAll(); renderAll();
+  }
+
+  async function fetchNewTickerPrice() {
+    const key=getFinnhubKey();
+    if (!key) { setStatus('newPositionStatus','Paste a Finnhub key in the Portfolio tab first.',false); return; }
+    const ticker=document.getElementById('newTicker').value.trim().toUpperCase();
+    if (!ticker) { setStatus('newPositionStatus','Enter a ticker symbol.',false); return; }
+    setStatus('newPositionStatus',`Fetching ${ticker}...`);
+    try {
+      const q=await fetchTickerQuote(ticker,key);
+      const px=safeNum(q.c,0)>0?safeNum(q.c):safeNum(q.pc,0);
+      if (!px) throw new Error('No valid price — check the ticker symbol.');
+      document.getElementById('newTickerPrice').value=px.toFixed(2);
+      setStatus('newPositionStatus',`${ticker} last price: $${px.toFixed(2)}`);
+    } catch(e) { setStatus('newPositionStatus',e.message,false); }
+  }
+
+  function executeNewPosition() {
+    const ticker  = document.getElementById('newTicker').value.trim().toUpperCase();
+    const name    = document.getElementById('newTickerName').value.trim() || ticker;
+    const price   = safeNum(document.getElementById('newTickerPrice').value, 0);
+    const amtUSD  = safeNum(document.getElementById('newTickerAmount').value, 0);
+    if (!ticker)    return setStatus('newPositionStatus','Enter a ticker symbol.',false);
+    if (!price)     return setStatus('newPositionStatus','Fetch price first.',false);
+    if (amtUSD<=0)  return setStatus('newPositionStatus','Enter a valid USD amount.',false);
+    if (safeNum(cashUSD,0)<amtUSD)
+      return setStatus('newPositionStatus',`Insufficient cash (${toUSD(cashUSD)}).`,false);
+    const sharesDelta=amtUSD/price;
+    const existing=holdings.find(h=>h.ticker===ticker);
+    if (existing) {
+      existing.shares=Number((safeNum(existing.shares,0)+sharesDelta).toFixed(6));
+      existing.currentValueUSD=Number((existing.shares*price).toFixed(2));
+      existing.lastPrice=price; existing.lastTradeAt=nowISO(); existing.status='Topped up';
+    } else {
+      holdings.push({ticker,name,targetWeight:0,maxWeightPct:safeNum(settings.maxWeightPct,20),
+        initialUSD:amtUSD, shares:Number(sharesDelta.toFixed(6)),
+        lastPrice:price, lastClose:price,
+        currentValueUSD:Number((sharesDelta*price).toFixed(2)),
+        momentum1dPct:null,momentum5dPct:null,momentum20dPct:null,
+        status:'New position', why:'', lastTradeAt:nowISO()});
+    }
+    cashUSD=Number((safeNum(cashUSD,0)-amtUSD).toFixed(2));
+    cashLog.unshift({timestamp:nowISO(), type:'BUY', amount:-amtUSD,
+      balance:cashUSD, note:`${existing?'Top-up':'New position'}: ${ticker} @ $${price.toFixed(2)}`});
+    tradeLog.unshift({timestamp:nowISO(), action:'BUY', ticker, tradeUSD:amtUSD,
+      shares:Number(sharesDelta.toFixed(6)), price});
+    markValuation(existing?`Top-up: ${ticker}`:`New position: ${ticker}`);
+    persistAll(); renderAll();
+    setStatus('newPositionStatus',
+      existing ? `Added ${toUSD(amtUSD)} to existing ${ticker}.`
+               : `Opened ${ticker}: ${sharesDelta.toFixed(4)} sh @ $${price.toFixed(2)}.`);
+    clearNewPositionForm();
+  }
+
+  function clearNewPositionForm() {
+    ['newTicker','newTickerName','newTickerAmount'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+    document.getElementById('newTickerPrice').value='';
+  }
+
+  // ── Render functions ───────────────────────────────────────────────────
+  function renderMetrics() {
+    const nav=getPortfolioValue();
+    const lastVal=valuation.length>1?valuation[valuation.length-2].portfolioValueUSD:nav;
+    const pnl=nav-safeNum(settings.startingCapital,1000);
+    const daily=nav-safeNum(lastVal,nav);
+    const lastRefresh=localStorage.getItem(SK.lastRefresh)||'Not yet fetched';
+    document.getElementById('metrics').innerHTML=`
+      <div class="metric"><span class="label">Portfolio NAV</span><span class="value">${toUSD(nav)}</span></div>
+      <div class="metric"><span class="label">Cash</span><span class="value">${toUSD(cashUSD)}</span></div>
+      <div class="metric"><span class="label">P/L vs start</span><span class="value ${pnl>=0?'good':'bad'}">${toUSD(pnl)}</span></div>
+      <div class="metric"><span class="label">Latest move</span><span class="value ${daily>=0?'good':'bad'}">${toUSD(daily)}</span></div>
+      <div class="metric"><span class="label">Positions</span><span class="value">${holdings.length}</span></div>
+      <div class="metric"><span class="label">Last refresh</span><span class="value" style="font-size:14px;">${lastRefresh}</span></div>
+    `;
+  }
+
+  function renderPortfolioValuation() {
+    const nav=getPortfolioValue()||0;
+    const hv=holdings.reduce((s,h)=>s+safeNum(h.currentValueUSD,safeNum(h.initialUSD,0)),0);
+    const pnl=nav-safeNum(settings.startingCapital,1000);
+    const lastRefresh=localStorage.getItem(SK.lastRefresh)||'Not yet fetched';
+    const el=document.getElementById('portfolioValuationMetrics');
+    if (!el) return;
+    el.innerHTML=`
+      <div class="metric"><span class="label">Total NAV</span><span class="value">${toUSD(nav)}</span></div>
+      <div class="metric"><span class="label">Holdings value</span><span class="value">${toUSD(hv)}</span></div>
+      <div class="metric"><span class="label">Cash</span><span class="value">${toUSD(cashUSD)}</span></div>
+      <div class="metric"><span class="label">P/L vs start</span><span class="value ${pnl>=0?'good':'bad'}">${toUSD(pnl)}</span></div>
+      <div class="metric"><span class="label">Last quote refresh</span><span class="value" style="font-size:14px;">${lastRefresh}</span></div>
+    `;
+  }
+
+  function renderHoldings() {
+    const nav=getPortfolioValue()||1;
+    const pctColour = v => v===null ? '' : v>0 ? 'good' : v<0 ? 'bad' : '';
+    const sigColour = s => s==='above SMAs'?'good': s==='below SMAs'?'bad': '';
+
+    const rows=holdings.map(h=>{
+      const wPct   = safeNum(h.currentValueUSD,0)/nav*100;
+      const dayChg = (h.lastPrice&&h.lastClose) ? ((h.lastPrice-h.lastClose)/h.lastClose*100) : null;
+      const vs5    = h.momentum5dPct  ?? null;
+      const vs20   = h.momentum20dPct ?? null;
+      const sig    = inferMomentumSignal(h);
+      const sma5Str  = h.sma5  ? `$${Number(h.sma5).toFixed(2)}`  : '—';
+      const sma20Str = h.sma20 ? `$${Number(h.sma20).toFixed(2)}` : '—';
+      return `<tr>
+        <td><strong>${h.ticker}</strong></td>
+        <td style="max-width:160px;">${h.name}<div class="small" style="color:var(--muted);white-space:normal;">${h.why||''}</div></td>
+        <td>${h.targetWeight>0?(h.targetWeight*100).toFixed(1)+'%':'—'}</td>
+        <td>${wPct.toFixed(2)}%</td>
+        <td>${toUSD(h.currentValueUSD)}</td>
+        <td class="mono">${h.lastPrice?'$'+h.lastPrice.toFixed(2):'—'}</td>
+        <td class="mono ${pctColour(dayChg)}">${dayChg!==null?(dayChg>=0?'+':'')+dayChg.toFixed(2)+'%':'—'}</td>
+        <td class="mono">${h.shares!==null&&h.shares!==undefined?Number(h.shares).toFixed(4):'—'}</td>
+        <td class="mono">${sma5Str} <span class="${pctColour(vs5)}" style="font-size:10px;">${vs5!==null?(vs5>=0?'+':'')+vs5.toFixed(2)+'%':''}</span></td>
+        <td class="mono">${sma20Str} <span class="${pctColour(vs20)}" style="font-size:10px;">${vs20!==null?(vs20>=0?'+':'')+vs20.toFixed(2)+'%':''}</span></td>
+        <td><span class="pill ${sigColour(sig)}" style="font-size:10px;">${sig}</span></td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('holdingsTable').innerHTML=`
+      <tr>
+        <th>Ticker</th><th>Name</th><th>Target wt</th><th>Current wt</th><th>Value</th>
+        <th>Price</th><th>Day chg</th><th>Shares</th>
+        <th>SMA5 (vs)</th><th>SMA20 (vs)</th><th>Signal</th>
+      </tr>
+      ${rows}
+      <tr>
+        <td><strong>CASH</strong></td><td style="color:var(--muted);">Reserve</td><td>—</td>
+        <td>${((safeNum(cashUSD,0)/nav)*100).toFixed(2)}%</td>
+        <td>${toUSD(cashUSD)}</td>
+        <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
+        <td><span class="pill" style="font-size:10px;">liquidity</span></td>
+      </tr>`;
+  }
+
+  function renderNews() {
+    const el=document.getElementById('newsList');
+    const last=newsState.find(n=>n.ticker!=='SYSTEM');
+    el.innerHTML=last
+      ? `<div class="news-item"><div class="split"><strong>Latest cached item</strong><span class="pill">${last.ticker}</span></div>
+         <div class="small" style="margin-top:6px;">${last.headline}</div></div>`
+      : '<div class="small">No news cached. Use the News tab to fetch Gemini-grounded news.</div>';
+  }
+
+  function renderGeminiNewsList() {
+    const el=document.getElementById('geminiNewsList');
+    if (!el) return;
+    const items=newsState.filter(n=>n.ticker!=='SYSTEM');
+    if (!items.length) {
+      el.innerHTML='<div class="small">No cached news. Paste a Google AI Studio key and click Fetch news.</div>';
+      return;
+    }
+    el.innerHTML=items.map(n=>`
+      <div class="news-item">
+        <div class="split">
+          <div><strong>${n.ticker}: ${n.headline}</strong>
+            <div class="small" style="margin-top:4px;">${new Date(n.datetime).toLocaleString()}</div></div>
+          <div><span class="pill">${n.sentiment||'neutral'}</span>
+               <span class="pill" style="margin-left:6px;">${n.source||'Gemini'}</span></div>
+        </div>
+        <div class="small" style="margin-top:8px;">${n.summary||''}</div>
+        ${n.url?`<div class="small" style="margin-top:8px;"><a href="${n.url}" target="_blank" rel="noopener">Open source</a></div>`:''}
+      </div>`).join('');
+  }
+
+  function renderEngineMetrics() {
+    const nav=getPortfolioValue();
+    const cash=safeNum(cashUSD,0);
+    const cashPct=nav>0?(cash/nav*100).toFixed(1):'0.0';
+    const minCashUSD=nav*(safeNum(settings.minCashBufferPct,5)/100);
+    const cashClass=cash<minCashUSD?'bad':'good';
+    const pnl=nav-safeNum(settings.startingCapital,1000);
+    const el=document.getElementById('engineMetrics');
+    if (!el) return;
+    el.innerHTML=`
+      <div class="metric"><span class="label">Portfolio NAV</span><span class="value">${toUSD(nav)}</span></div>
+      <div class="metric"><span class="label">Available cash</span><span class="value ${cashClass}">${toUSD(cash)}</span></div>
+      <div class="metric"><span class="label">Cash weight</span><span class="value">${cashPct}%</span></div>
+      <div class="metric"><span class="label">Positions</span><span class="value">${holdings.length}</span></div>
+      <div class="metric"><span class="label">P/L vs start</span><span class="value ${pnl>=0?'good':'bad'}">${toUSD(pnl)}</span></div>
+    `;
+  }
+
+  function renderRebalanceTable() {
+    const nav=getPortfolioValue()||1;
+    if (!holdings.length) {
+      document.getElementById('rebalanceTable').innerHTML='<tr><td class="small">No holdings yet.</td></tr>';
+      return;
+    }
+    const rows=holdings.map(h=>{
+      const curPct=safeNum(h.currentValueUSD,0)/nav*100;
+      const tgtPct=safeNum(h.targetWeight,0)*100;
+      const diff=curPct-tgtPct;
+      const diffStr=(diff>=0?'+':'')+diff.toFixed(2)+'%';
+      const diffClass=tgtPct===0?'':(Math.abs(diff)<0.5?'':diff>0?'bad':'good');
+      const hasPrice=safeNum(h.lastPrice,0)>0;
+      return `<tr>
+        <td><strong>${h.ticker}</strong><div class="small">${h.name}</div></td>
+        <td>${toUSD(h.currentValueUSD)}</td>
+        <td>${curPct.toFixed(2)}%</td>
+        <td>${tgtPct>0?tgtPct.toFixed(1)+'%':'<span style="color:var(--muted)">—</span>'}</td>
+        <td class="${diffClass}">${tgtPct>0?diffStr:'—'}</td>
+        <td>${hasPrice?'$'+h.lastPrice.toFixed(2):'<span class="warn-text">No price</span>'}</td>
+        <td>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input type="number" id="tradeAmt_${h.ticker}" placeholder="USD" min="0.01" step="1"
+              style="width:88px;padding:7px 8px;" />
+            <button onclick="executeTrade('${h.ticker}','BUY')" ${hasPrice?'':'disabled'}
+              style="padding:7px 11px;font-size:12px;">Buy</button>
+            <button onclick="executeTrade('${h.ticker}','SELL')" class="secondary" ${hasPrice?'':'disabled'}
+              style="padding:7px 11px;font-size:12px;">Sell</button>
+            <button onclick="closePosition('${h.ticker}')" class="ghost"
+              style="padding:7px 11px;font-size:12px;color:#ff9090;border-color:#ff6b6b;" title="Close position">✕</button>
+          </div>
+        </td>
+        <td style="min-width:130px;"><div class="small" id="tradeStatus_${h.ticker}"></div></td>
+      </tr>`;
+    }).join('');
+    document.getElementById('rebalanceTable').innerHTML=`
+      <tr><th>Ticker</th><th>Value</th><th>Current wt</th><th>Target wt</th>
+          <th>Δ vs target</th><th>Last price</th><th>Trade (USD)</th><th>Status</th></tr>
+      ${rows}`;
+  }
+
+  function renderCashMetrics() {
+    const nav=getPortfolioValue();
+    const cash=safeNum(cashUSD,0);
+    const cashPct=nav>0?(cash/nav*100).toFixed(1):'0.0';
+    // Net external flows: sum DEPOSIT minus WITHDRAW (exclude BUY/SELL which are internal)
+    const totalDeposited=cashLog.filter(c=>c.type==='DEPOSIT').reduce((s,c)=>s+safeNum(c.amount,0),0);
+    const totalWithdrawn=cashLog.filter(c=>c.type==='WITHDRAW').reduce((s,c)=>s+safeNum(c.amount,0),0);
+    const el=document.getElementById('cashMetrics');
+    if (!el) return;
+    el.innerHTML=`
+      <div class="metric"><span class="label">Current cash</span><span class="value good">${toUSD(cash)}</span></div>
+      <div class="metric"><span class="label">Cash / NAV</span><span class="value">${cashPct}%</span></div>
+      <div class="metric"><span class="label">Total deposited</span><span class="value good">${toUSD(totalDeposited)}</span></div>
+      <div class="metric"><span class="label">Total withdrawn</span><span class="value bad">${toUSD(totalWithdrawn)}</span></div>
+      <div class="metric"><span class="label">Net external flow</span><span class="value ${totalDeposited-totalWithdrawn>=0?'good':'bad'}">${toUSD(totalDeposited-totalWithdrawn)}</span></div>
+    `;
+  }
+
+  function renderCashLog() {
+    const el=document.getElementById('cashLogTable');
+    if (!el) return;
+    if (!cashLog.length) {
+      el.innerHTML='<tr><td class="small">No cash flow events yet.</td></tr>'; return;
+    }
+    const rows=cashLog.slice(0,100).map(c=>{
+      let badgeClass='pill';
+      if (c.type==='DEPOSIT') badgeClass='pill deposit-badge';
+      else if (c.type==='WITHDRAW') badgeClass='pill withdraw-badge';
+      else if (c.type==='RESET') badgeClass='pill reset-badge';
+      const amtStr = c.type==='BUY'
+        ? `<span class="bad">${toUSD(Math.abs(c.amount))}</span>`
+        : c.type==='SELL'?`<span class="good">+${toUSD(Math.abs(c.amount))}</span>`
+        : c.amount>=0?`<span class="good">+${toUSD(c.amount)}</span>`:`<span class="bad">${toUSD(c.amount)}</span>`;
+      return `<tr>
+        <td>${new Date(c.timestamp).toLocaleString()}</td>
+        <td><span class="${badgeClass}">${c.type}</span></td>
+        <td>${amtStr}</td>
+        <td>${toUSD(c.balance)}</td>
+        <td>${c.note||''}</td>
+      </tr>`;
+    }).join('');
+    el.innerHTML=`<tr><th>Time</th><th>Type</th><th>Amount</th><th>Balance after</th><th>Note</th></tr>${rows}`;
+  }
+
+  function buildThesisList() {
+    const basket = (aiBasket && aiBasket.length) ? aiBasket : DEFAULT_BASKET;
+    const isAI   = !!(aiBasket && aiBasket.length);
+
+    // Basket title
+    const titleEl = document.getElementById('basketTitle');
+    const subEl   = document.getElementById('basketSubtitle');
+    if (titleEl) titleEl.textContent = isAI ? 'Active basket' : 'Default basket';
+    if (subEl)   subEl.textContent   = isAI
+      ? 'Defined in the portfolio builder. Fetch quotes to mark to market.'
+      : 'Seeded from DEFAULT_BASKET. Define your own basket in the Portfolio builder panel.';
+
+    // Thesis block
+    const thesisCard  = document.getElementById('thesisCard');
+    const thesisText  = document.getElementById('thesisText');
+    const thesisBadge = document.getElementById('thesisBadge');
+    if (thesisCard) {
+      if (aiThesis) {
+        thesisCard.style.display = 'block';
+        if (thesisText)  thesisText.textContent = aiThesis;
+        if (thesisBadge) thesisBadge.textContent = `Investment thesis · ${new Date().toLocaleDateString()}`;
+      } else {
+        thesisCard.style.display = 'none';
+      }
+    }
+
+    // Picks list
+    document.getElementById('thesisList').innerHTML = basket.map(h=>`
+      <div class="news-item">
+        <div class="split">
+          <strong>${h.ticker}</strong>
+          <span class="pill">Target ${(safeNum(h.targetWeight,0)*100).toFixed(1)}%</span>
+        </div>
+        <div class="small">${h.name}</div>
+        <div class="small" style="margin-top:6px;">${h.why}</div>
+      </div>`).join('');
+  }
+
+  function renderTradeLog() {
+    const el = document.getElementById('tradeTable');
+    if (!el) return;
+    // Filter out INIT entries (rebalance-only internal entries)
+    const trades = tradeLog.filter(t => t.action !== 'INIT').slice(0, 100);
+    if (!trades.length) { el.innerHTML='<tr><td class="small" style="padding:12px;">No trades yet.</td></tr>'; return; }
+    const actionBadge = a => {
+      const c = a==='BUY'?'good': a==='SELL'?'bad': a==='CLOSE'?'bad':'';
+      return `<span class="pill ${c}" style="font-size:10px;">${a}</span>`;
+    };
+    const rows = trades.map(t => {
+      const price = safeNum(t.price, 0);
+      const shares = typeof t.shares === 'number' ? t.shares.toFixed(4) : '—';
+      const priceStr = price > 0 ? `$${price.toFixed(2)}` : '—';
+      return `<tr>
+        <td style="white-space:nowrap;">${new Date(t.timestamp).toLocaleString()}</td>
+        <td>${actionBadge(t.action)}</td>
+        <td><strong>${t.ticker}</strong></td>
+        <td>${typeof t.tradeUSD==='number'?toUSD(t.tradeUSD):'—'}</td>
+        <td class="mono">${shares}</td>
+        <td class="mono">${priceStr}</td>
+      </tr>`;
+    }).join('');
+    el.innerHTML = `<tr>
+      <th>Time</th><th>Action</th><th>Ticker</th>
+      <th>USD</th><th>Shares</th><th>Price</th>
+    </tr>${rows}`;
+  }
+
+  function renderRebalanceLog() {
+    const el = document.getElementById('rebalanceLogList');
+    if (!el) return;
+    if (!rebalanceLog.length) {
+      el.innerHTML='<div class="small" style="padding:12px 0;">No rebalances yet.</div>'; return;
+    }
+    el.innerHTML = rebalanceLog.slice(0, 20).map(r => `
+      <div class="news-item" style="margin-bottom:10px;">
+        <div class="split" style="margin-bottom:6px;">
+          <strong>${new Date(r.timestamp).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</strong>
+          <span style="display:flex;gap:6px;">
+            <span class="pill">${r.positionCount} positions</span>
+            <span class="pill good">NAV ${toUSD(r.navAtRebalance)}</span>
+          </span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          ${(r.picks||[]).map(p=>`
+            <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;">
+              <span><strong>${p.ticker}</strong> <span style="color:var(--muted)">${p.name}</span></span>
+              <span style="display:flex;gap:8px;align-items:center;">
+                <span class="mono" style="color:var(--accent);">${(p.weight*100).toFixed(1)}%</span>
+                <span style="color:var(--muted);font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.why||''}</span>
+              </span>
+            </div>`).join('')}
+        </div>
+      </div>`).join('');
+  }
+
+  // ── Charts ─────────────────────────────────────────────────────────────
+  function svgLine(pts) {
+    return pts.map((p,i)=>`${i?'L':'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  }
+
+  function drawChart() {
+    const svg = document.getElementById('chart');
+    if (!svg) return;
+    const data = valuation.filter(d => safeNum(d.portfolioValueUSD,0) > 0);
+    if (data.length < 2) {
+      svg.innerHTML = `<text x="480" y="130" fill="#a8b4d8" font-size="14" text-anchor="middle">Not enough data yet — fetch quotes to start tracking NAV.</text>`;
+      return;
+    }
+
+    const W=960, H=260, ml=68, mr=20, mt=24, mb=44;
+    const cW = W-ml-mr, cH = H-mt-mb;
+    const vals = data.map(d => safeNum(d.portfolioValueUSD,0));
+    const startCap = safeNum(settings.startingCapital, 1000);
+    const minV = Math.min(...vals, startCap) * 0.995;
+    const maxV = Math.max(...vals, startCap) * 1.005;
+    const range = Math.max(maxV - minV, 1);
+
+    const xOf = i => ml + (i / Math.max(data.length-1,1)) * cW;
+    const yOf = v => mt + (1 - (v - minV) / range) * cH;
+
+    // Grid lines + Y labels (5 ticks)
+    const ticks = 5;
+    let gridLines='', yLabels='';
+    for (let i=0;i<=ticks;i++) {
+      const v = minV + (range/ticks)*i;
+      const y = yOf(v);
+      gridLines += `<line x1="${ml}" y1="${y.toFixed(1)}" x2="${W-mr}" y2="${y.toFixed(1)}" stroke="#1e2d54" stroke-width="1"/>`;
+      yLabels   += `<text x="${ml-6}" y="${(y+4).toFixed(1)}" fill="#6b7fa8" font-size="11" text-anchor="end">$${Number(v).toFixed(0)}</text>`;
+    }
+
+    // X date labels (up to 8)
+    const step = Math.max(1, Math.floor(data.length/8));
+    let xLabels='';
+    for (let i=0;i<data.length;i+=step) {
+      const x = xOf(i);
+      const d = data[i].date||'';
+      const label = d.slice(5); // MM-DD
+      xLabels += `<text x="${x.toFixed(1)}" y="${H-mb+16}" fill="#6b7fa8" font-size="10" text-anchor="middle">${label}</text>`;
+    }
+
+    // Start capital reference line
+    const refY = yOf(startCap).toFixed(1);
+    const refLine = `<line x1="${ml}" y1="${refY}" x2="${W-mr}" y2="${refY}" stroke="#40528b" stroke-width="1" stroke-dasharray="4,4"/>
+      <text x="${ml+4}" y="${Number(refY)-4}" fill="#40528b" font-size="10">Start $${startCap}</text>`;
+
+    // Area fill
+    const pts = data.map((_,i) => [xOf(i), yOf(vals[i])]);
+    const linePath = svgLine(pts);
+    const areaPath = `${linePath} L${xOf(data.length-1).toFixed(1)},${(mt+cH).toFixed(1)} L${ml},${(mt+cH).toFixed(1)} Z`;
+    const lastVal = vals[vals.length-1];
+    const pnlPct = ((lastVal-startCap)/startCap*100).toFixed(2);
+    const pnlColour = lastVal >= startCap ? '#4caf8a' : '#ff7070';
+
+    // Range pill text
+    const rangePill = document.getElementById('navChartRange');
+    if (rangePill) rangePill.textContent = `${data[0].date} → ${data[data.length-1].date} · ${pnlPct>=0?'+':''}${pnlPct}%`;
+
+    // Tooltip circles
+    const dots = pts.map((p,i)=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.5" fill="${pnlColour}" opacity="0.8">
+      <title>${data[i].date}  ${toUSD(vals[i])}  ${data[i].note||''}</title></circle>`).join('');
+
+    svg.innerHTML = `
+      ${gridLines}
+      <defs><linearGradient id="navGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${pnlColour}" stop-opacity="0.25"/>
+        <stop offset="100%" stop-color="${pnlColour}" stop-opacity="0.02"/>
+      </linearGradient></defs>
+      <path d="${areaPath}" fill="url(#navGrad)"/>
+      <path d="${linePath}" fill="none" stroke="${pnlColour}" stroke-width="2.5"/>
+      ${refLine}
+      ${dots}
+      ${yLabels}
+      ${xLabels}
+      <line x1="${ml}" y1="${mt}" x2="${ml}" y2="${mt+cH}" stroke="#2a3a6a" stroke-width="1"/>
+      <line x1="${ml}" y1="${mt+cH}" x2="${W-mr}" y2="${mt+cH}" stroke="#2a3a6a" stroke-width="1"/>`;
+  }
+
+  function drawComponentChart() {
+    const svg = document.getElementById('componentChart');
+    const legendEl = document.getElementById('componentLegend');
+    if (!svg) return;
+
+    if (priceSnap.length < 2) {
+      svg.innerHTML = `<text x="480" y="140" fill="#a8b4d8" font-size="14" text-anchor="middle">Not enough data yet — price history builds up as you fetch quotes over time.</text>`;
+      if (legendEl) legendEl.innerHTML = '';
+      return;
+    }
+
+    // Collect all tickers present in snapshots, limit to current holdings for clarity
+    const activeTickers = holdings.map(h=>h.ticker);
+    const allTickers = [...new Set(priceSnap.flatMap(s=>Object.keys(s.prices)))].filter(t=>activeTickers.includes(t));
+    if (!allTickers.length) { svg.innerHTML=''; return; }
+
+    const COLOURS = ['#7aa2ff','#4caf8a','#ffb347','#ff7eb3','#a78bfa','#38bdf8','#fb7185','#34d399','#fbbf24','#c084fc'];
+    const colourOf = t => COLOURS[allTickers.indexOf(t) % COLOURS.length];
+
+    // Avg cost per ticker from trade log
+    const avgCost = {};
+    allTickers.forEach(ticker => {
+      const buys = tradeLog.filter(t => t.ticker===ticker && t.action==='BUY' && safeNum(t.shares,0)>0);
+      const totalCost   = buys.reduce((s,t)=>s+safeNum(t.tradeUSD,0),0);
+      const totalShares = buys.reduce((s,t)=>s+safeNum(t.shares,0),0);
+      if (totalShares>0) avgCost[ticker] = totalCost/totalShares;
+    });
+
+    const W=960, H=280, ml=72, mr=20, mt=20, mb=44;
+    const cW=W-ml-mr, cH=H-mt-mb;
+    const dates = priceSnap.map(s=>s.date);
+
+    // Normalise to % return from first available price for each ticker (so all start at same scale)
+    const basePrices = {};
+    allTickers.forEach(t => {
+      const first = priceSnap.find(s => s.prices[t] != null);
+      if (first) basePrices[t] = first.prices[t];
+    });
+
+    const allPcts = priceSnap.flatMap(s => allTickers.map(t => {
+      const base = basePrices[t]; const px = s.prices[t];
+      return (base&&px) ? (px-base)/base*100 : null;
+    })).filter(x=>x!==null);
+
+    const minP = Math.min(...allPcts, 0) - 1;
+    const maxP = Math.max(...allPcts, 0) + 1;
+    const range = Math.max(maxP - minP, 1);
+    const xOf = i => ml + (i/Math.max(dates.length-1,1))*cW;
+    const yOf = v => mt + (1-(v-minP)/range)*cH;
+
+    // Grid + zero line
+    let gridLines='', yLabels='';
+    for (let i=0;i<=4;i++) {
+      const v = minP + (range/4)*i;
+      const y = yOf(v);
+      gridLines += `<line x1="${ml}" y1="${y.toFixed(1)}" x2="${W-mr}" y2="${y.toFixed(1)}" stroke="#1e2d54" stroke-width="1"/>`;
+      yLabels   += `<text x="${ml-6}" y="${(y+4).toFixed(1)}" fill="#6b7fa8" font-size="11" text-anchor="end">${v>=0?'+':''}${v.toFixed(1)}%</text>`;
+    }
+    const zeroY = yOf(0).toFixed(1);
+    const zeroLine = `<line x1="${ml}" y1="${zeroY}" x2="${W-mr}" y2="${zeroY}" stroke="#3a4e7a" stroke-width="1.5" stroke-dasharray="3,3"/>`;
+
+    // X labels
+    const step = Math.max(1, Math.floor(dates.length/8));
+    let xLabels='';
+    for (let i=0;i<dates.length;i+=step) {
+      xLabels += `<text x="${xOf(i).toFixed(1)}" y="${H-mb+16}" fill="#6b7fa8" font-size="10" text-anchor="middle">${dates[i].slice(5)}</text>`;
+    }
+
+    // Lines per ticker
+    let lines='', costLines='';
+    allTickers.forEach(ticker => {
+      const col = colourOf(ticker);
+      const pts = priceSnap.map((s,i)=>{
+        const base=basePrices[ticker]; const px=s.prices[ticker];
+        if (!base||!px) return null;
+        return [xOf(i), yOf((px-base)/base*100)];
+      }).filter(Boolean);
+      if (pts.length>=2) {
+        lines += `<path d="${svgLine(pts)}" fill="none" stroke="${col}" stroke-width="2" opacity="0.9">
+          <title>${ticker}</title></path>`;
+        // Last dot
+        const lp=pts[pts.length-1];
+        lines += `<circle cx="${lp[0].toFixed(1)}" cy="${lp[1].toFixed(1)}" r="4" fill="${col}"/>`;
+      }
+      // Avg cost dashed line
+      const base=basePrices[ticker];
+      if (base && avgCost[ticker]) {
+        const costPct = (avgCost[ticker]-base)/base*100;
+        if (costPct>=minP && costPct<=maxP) {
+          const cy = yOf(costPct).toFixed(1);
+          costLines += `<line x1="${ml}" y1="${cy}" x2="${W-mr}" y2="${cy}" stroke="${col}" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.5">
+            <title>${ticker} avg cost: $${avgCost[ticker].toFixed(2)}</title></line>`;
+        }
+      }
+    });
+
+    svg.innerHTML = `${gridLines}${zeroLine}${costLines}${lines}${yLabels}${xLabels}
+      <line x1="${ml}" y1="${mt}" x2="${ml}" y2="${mt+cH}" stroke="#2a3a6a"/>
+      <line x1="${ml}" y1="${mt+cH}" x2="${W-mr}" y2="${mt+cH}" stroke="#2a3a6a"/>`;
+
+    // Legend
+    if (legendEl) {
+      legendEl.innerHTML = allTickers.map(t => {
+        const col = colourOf(t);
+        const last = priceSnap.slice().reverse().find(s=>s.prices[t]);
+        const base = basePrices[t];
+        const pct  = (last&&base) ? ((last.prices[t]-base)/base*100).toFixed(2) : null;
+        const pctStr = pct!=null ? ` <span style="color:${Number(pct)>=0?'#4caf8a':'#ff7070'}">${Number(pct)>=0?'+':''}${pct}%</span>` : '';
+        return `<span style="display:flex;align-items:center;gap:4px;">
+          <span style="width:12px;height:3px;background:${col};display:inline-block;border-radius:2px;"></span>
+          <span>${t}${pctStr}</span></span>`;
+      }).join('');
+    }
+  }
+
+  function renderAll() {
+    renderMetrics();
+    renderPortfolioValuation();
+    renderHoldings();
+    renderGeminiNewsList();
+    renderEngineMetrics();
+    renderRebalanceTable();
+    renderCashMetrics();
+    renderCashLog();
+    renderTradeLog();
+    renderRebalanceLog();
+    drawChart();
+    drawComponentChart();
+    buildThesisList();
+  }
+
+  // ── Boot ───────────────────────────────────────────────────────────────
+  normalizeState();
+  initializePortfolio(false);
+  applyFormValues();
+  renderAll();
+  populateBuilderFromCurrent();
+</script>
+</body>
+</html>
