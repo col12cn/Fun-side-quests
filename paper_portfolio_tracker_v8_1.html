@@ -1,0 +1,3107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Paper Portfolio Tracker · v8</title>
+  <style>
+    :root {
+      --bg: #0b1020; --panel: #121933; --panel-2: #192349; --panel-3: #0f1732;
+      --text: #ecf1ff; --muted: #a8b4d8; --muted-2: #7385b8;
+      --line: #2d3a6b; --line-2: #1e2a55;
+      --good: #27c281; --good-soft: #1a3a2a;
+      --bad: #ff6b6b;  --bad-soft: #3a1a1a;
+      --warn: #f3b74f; --warn-soft: #2a2a1a;
+      --accent: #7aa2ff; --accent-2: #5a82e0; --chip: #1f2b55;
+      --paper-flag: #c9a96e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin:0; font-family: 'Inter', system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+      background: linear-gradient(180deg, #0b1020 0%, #101834 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .wrap { max-width: 1400px; margin: 0 auto; padding: 24px; }
+    h1, h2, h3 { margin: 0 0 10px 0; }
+    h1 { font-size: 26px; letter-spacing: -0.01em; }
+    h2 { font-size: 18px; letter-spacing: -0.005em; }
+    h3 { font-size: 14px; }
+    p  { color: var(--muted); line-height: 1.5; }
+    .small { font-size: 13px; color: var(--muted); }
+    .footnote { font-size: 12px; color: var(--muted); margin-top: 8px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    /* ── Masthead ── */
+    .masthead {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 6px;
+    }
+    .paper-badge {
+      font-family: ui-monospace, monospace; font-size: 10px;
+      letter-spacing: 0.18em; padding: 4px 10px;
+      border: 1px solid var(--paper-flag); color: var(--paper-flag);
+      border-radius: 999px; background: rgba(201, 169, 110, 0.07);
+    }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 22px; }
+    .tab-btn {
+      border: 1px solid var(--line); background: var(--panel); color: var(--text);
+      padding: 10px 16px; border-radius: 12px; cursor: pointer;
+      font-size: 14px; font-weight: 500; transition: all 0.15s ease;
+    }
+    .tab-btn:hover { background: var(--panel-2); }
+    .tab-btn.active {
+      background: var(--accent); color: #08112b; border-color: var(--accent);
+      font-weight: 700;
+    }
+    .tab { display: none; }
+    .tab.active { display: block; }
+
+    /* ── Cards & layout ── */
+    .grid { display: grid; gap: 16px; }
+    .grid-2 { grid-template-columns: 1.1fr 0.9fr; }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .card {
+      background: rgba(18, 25, 51, 0.92);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+      margin-bottom: 16px;
+    }
+    .card-header {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
+    }
+    .card-header h2 { margin: 0; }
+    .card-section + .card-section {
+      margin-top: 18px; padding-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    .metrics, .metrics-5, .metrics-4 {
+      display: grid; gap: 12px;
+    }
+    .metrics   { grid-template-columns: repeat(6, 1fr); }
+    .metrics-5 { grid-template-columns: repeat(5, 1fr); }
+    .metrics-4 { grid-template-columns: repeat(4, 1fr); }
+    .metric {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .metric .label {
+      display: block; color: var(--muted);
+      font-size: 11px; margin-bottom: 4px;
+      letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .metric .value {
+      font-size: 20px; font-weight: 700;
+      font-feature-settings: "tnum" 1;
+    }
+    .metric .sub {
+      font-size: 11px; color: var(--muted); margin-top: 2px;
+    }
+
+    /* ── Tables ── */
+    table { width: 100%; border-collapse: collapse; }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 8px; text-align: left;
+      vertical-align: top; font-size: 13px;
+    }
+    th {
+      color: #cfd8ff; font-weight: 600;
+      font-size: 11px; letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    th.sortable { cursor: pointer; user-select: none; }
+    th.sortable:hover { color: var(--accent); }
+    th.sortable .sort-arrow { color: var(--accent); margin-left: 3px; }
+
+    /* ── Inputs ── */
+    input, select, textarea {
+      width: 100%;
+      background: var(--panel-3);
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      outline: none;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+    }
+    textarea { min-height: 100px; resize: vertical; line-height: 1.5; }
+    label {
+      display: block; font-size: 12px; color: var(--muted);
+      margin-bottom: 6px; letter-spacing: 0.02em;
+    }
+    .row { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; margin-bottom: 12px; }
+    .col-2 { grid-column: span 2; } .col-3 { grid-column: span 3; }
+    .col-4 { grid-column: span 4; } .col-6 { grid-column: span 6; }
+    .col-8 { grid-column: span 8; } .col-12 { grid-column: span 12; }
+
+    /* ── Buttons ── */
+    button {
+      border: 0; border-radius: 10px; padding: 10px 14px;
+      cursor: pointer; background: var(--accent); color: #08112b;
+      font-weight: 700; font-size: 13px;
+      font-family: inherit;
+      transition: all 0.15s ease;
+    }
+    button:hover:not(:disabled) { background: var(--accent-2); transform: translateY(-1px); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.secondary { background: #334372; color: var(--text); }
+    button.secondary:hover:not(:disabled) { background: #3f5288; }
+    button.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+    button.ghost:hover:not(:disabled) { background: var(--panel-2); }
+    button.warn { background: var(--warn); color: #2b2000; }
+    button.danger { background: #7a2020; color: #ffd0d0; }
+    button.danger:hover:not(:disabled) { background: #a02828; }
+    button.tiny { padding: 5px 10px; font-size: 11px; border-radius: 8px; }
+    button.icon-only { padding: 6px 10px; font-size: 11px; }
+    .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    /* ── Pills & badges ── */
+    .pill {
+      display: inline-block;
+      padding: 4px 9px; border-radius: 999px;
+      font-size: 11px; font-weight: 700;
+      background: var(--chip); border: 1px solid var(--line);
+      color: #dce5ff;
+      letter-spacing: 0.02em;
+    }
+    .pill.good { background: var(--good-soft); color: #57df9f; border-color: #27c281; }
+    .pill.bad  { background: var(--bad-soft);  color: #ff9090; border-color: #ff6b6b; }
+    .pill.warn { background: var(--warn-soft); color: #ffd27d; border-color: #f3b74f; }
+    .pill.ghost { background: transparent; color: var(--muted); }
+
+    /* ── Colours ── */
+    .good { color: var(--good); }
+    .bad  { color: var(--bad); }
+    .warn-text { color: var(--warn); }
+    .muted-text { color: var(--muted); }
+
+    /* ── Status ── */
+    .status { min-height: 18px; color: var(--muted); font-size: 13px; }
+    .status .good { color: var(--good); }
+    .status .bad  { color: var(--bad); }
+
+    /* ── Onboarding card ── */
+    .onboarding {
+      background: linear-gradient(135deg, rgba(122, 162, 255, 0.10), rgba(122, 162, 255, 0.02));
+      border: 1px solid var(--accent);
+      border-radius: 16px; padding: 20px; margin-bottom: 16px;
+      position: relative;
+    }
+    .onboarding .dismiss {
+      position: absolute; top: 12px; right: 14px;
+      background: transparent; color: var(--muted);
+      border: none; padding: 4px 8px; cursor: pointer;
+      font-size: 18px; font-weight: 400;
+    }
+    .onboarding .dismiss:hover { color: var(--text); transform: none; }
+    .onboarding ol { margin: 12px 0 0; padding-left: 20px; }
+    .onboarding li { margin-bottom: 8px; color: var(--text); font-size: 14px; }
+    .onboarding li.done { text-decoration: line-through; color: var(--muted); }
+    .onboarding .jump {
+      background: none; color: var(--accent); border: none; padding: 0;
+      font-weight: 600; cursor: pointer; text-decoration: underline;
+      margin-left: 6px; font-size: 13px;
+    }
+    .onboarding .jump:hover { transform: none; color: #a8c0ff; }
+
+    /* ── Sparkline ── */
+    .sparkline-row {
+      display: flex; align-items: center; gap: 16px;
+      padding: 14px 16px; background: var(--panel-2);
+      border: 1px solid var(--line); border-radius: 12px;
+      margin-bottom: 16px; cursor: pointer;
+      transition: border-color 0.15s ease;
+    }
+    .sparkline-row:hover { border-color: var(--accent); }
+    .sparkline-info { flex-shrink: 0; }
+    .sparkline-info .l { font-size: 11px; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; }
+    .sparkline-info .v { font-size: 24px; font-weight: 700; font-feature-settings: "tnum" 1; }
+    .sparkline-svg { flex: 1; height: 60px; }
+    .sparkline-cta { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+
+    /* ── Progress steps ── */
+    .progress-steps {
+      display: flex; align-items: center; gap: 0;
+      margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .step {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 14px;
+      background: var(--panel-3); border: 1px solid var(--line);
+      border-radius: 10px;
+      font-size: 12px; color: var(--muted);
+    }
+    .step .step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--line); color: var(--muted-2);
+      font-size: 11px; font-weight: 700;
+      font-family: ui-monospace, monospace;
+    }
+    .step.active { border-color: var(--accent); color: var(--text); }
+    .step.active .step-num { background: var(--accent); color: #08112b; }
+    .step.complete { border-color: var(--good); color: var(--text); }
+    .step.complete .step-num { background: var(--good); color: #08112b; }
+    .step-arrow { color: var(--muted); padding: 0 4px; }
+
+    /* ── Modal / Drawer ── */
+    .drawer-overlay {
+      position: fixed; inset: 0;
+      background: rgba(8, 12, 28, 0.7); backdrop-filter: blur(4px);
+      display: none; z-index: 100;
+      animation: fadeIn 0.2s ease;
+    }
+    .drawer-overlay.active { display: block; }
+    .drawer {
+      position: fixed; top: 0; right: 0; bottom: 0;
+      width: min(560px, 100vw);
+      background: var(--panel); border-left: 1px solid var(--line);
+      overflow-y: auto;
+      padding: 24px;
+      transform: translateX(100%);
+      transition: transform 0.25s ease;
+      z-index: 101;
+    }
+    .drawer.active { transform: translateX(0); }
+    .drawer-close {
+      position: absolute; top: 14px; right: 14px;
+      background: transparent; color: var(--muted);
+      border: none; padding: 6px 10px; font-size: 18px;
+      cursor: pointer;
+    }
+    .drawer-close:hover { color: var(--text); }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* ── Trade preview ── */
+    .preview-row {
+      background: rgba(243, 183, 79, 0.08);
+      border-left: 3px solid var(--warn);
+    }
+    .preview-row td {
+      padding: 14px 8px;
+    }
+    .preview-detail {
+      font-size: 12px; color: var(--text);
+      line-height: 1.6;
+    }
+    .preview-detail strong { color: var(--warn); }
+
+    /* ── Diff chips ── */
+    .diff-chip {
+      font-size: 10px; padding: 2px 6px; border-radius: 4px;
+      font-family: ui-monospace, monospace; font-weight: 700;
+      margin-right: 4px; letter-spacing: 0.04em;
+    }
+    .diff-add { background: var(--good-soft); color: #57df9f; }
+    .diff-rm  { background: var(--bad-soft);  color: #ff9090; }
+    .diff-chg { background: var(--warn-soft); color: #ffd27d; }
+
+    /* ── Misc ── */
+    .news-item { border-top: 1px solid var(--line); padding: 12px 0; }
+    .news-item:first-child { border-top: 0; }
+    .split { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
+    svg.chart { width: 100%; height: 330px; background: var(--panel-3); border: 1px solid var(--line); border-radius: 12px; }
+    .code { white-space: pre-wrap; background: var(--panel-3); border: 1px solid var(--line); border-radius: 10px; padding: 12px; font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted); }
+    .deposit-badge  { background: var(--good-soft); color: #57df9f; border-color: var(--good); }
+    .withdraw-badge { background: var(--bad-soft);  color: #ff9090; border-color: var(--bad); }
+    .reset-badge    { background: var(--warn-soft); color: #ffd27d; border-color: var(--warn); }
+
+    .stale-tag {
+      font-size: 10px; color: var(--bad); margin-left: 6px;
+    }
+    .fresh-tag {
+      font-size: 10px; color: var(--muted-2); margin-left: 6px;
+      font-family: ui-monospace, monospace;
+    }
+
+    /* ── Filter chips ── */
+    .filter-chips {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;
+    }
+    .fchip {
+      font-size: 11px; padding: 5px 10px; border-radius: 999px;
+      background: var(--panel-3); border: 1px solid var(--line);
+      color: var(--muted); cursor: pointer; font-weight: 600;
+      transition: all 0.15s ease;
+    }
+    .fchip:hover { color: var(--text); }
+    .fchip.active { background: var(--accent); color: #08112b; border-color: var(--accent); }
+
+    /* ── Ticker link in holdings ── */
+    .ticker-link {
+      cursor: pointer; color: var(--text); font-weight: 700;
+      border-bottom: 1px dashed var(--accent);
+    }
+    .ticker-link:hover { color: var(--accent); }
+
+    /* ── Week range bar ── */
+    .week-range {
+      display: flex; flex-direction: column; gap: 3px; min-width: 110px;
+    }
+    .week-range-bar {
+      position: relative; height: 4px; background: var(--line);
+      border-radius: 2px; margin: 2px 0;
+    }
+    .week-range-marker {
+      position: absolute; top: -2px; width: 2px; height: 8px;
+      background: var(--accent); border-radius: 1px;
+    }
+    .week-range-text {
+      font-size: 10px; color: var(--muted-2); display: flex; justify-content: space-between;
+      font-family: ui-monospace, monospace;
+    }
+
+    /* ── Ask Gemini box ── */
+    .ask-box {
+      display: flex; gap: 10px; margin-bottom: 12px;
+    }
+    .ask-box input { flex: 1; }
+    .ask-response {
+      background: var(--panel-3); border: 1px solid var(--line);
+      border-left: 3px solid var(--accent);
+      border-radius: 10px; padding: 14px;
+      white-space: pre-wrap; line-height: 1.6;
+      font-size: 14px;
+      max-height: 400px; overflow-y: auto;
+    }
+    .ask-empty {
+      color: var(--muted); font-style: italic; font-size: 13px;
+    }
+
+    /* ── Confirm reset block ── */
+    .confirm-reset {
+      background: rgba(255, 107, 107, 0.06);
+      border: 1px solid var(--bad);
+      border-radius: 12px; padding: 16px; margin-top: 12px;
+    }
+
+    /* ── Mobile cards for holdings ── */
+    .holdings-cards { display: none; }
+    @media (max-width: 900px) {
+      .holdings-table-wrap { display: none; }
+      .holdings-cards { display: grid; gap: 10px; }
+      .h-card {
+        background: var(--panel-2); border: 1px solid var(--line);
+        border-radius: 12px; padding: 14px;
+      }
+      .h-card .h-row {
+        display: flex; justify-content: space-between; gap: 8px;
+        font-size: 13px; padding: 4px 0;
+      }
+      .h-card .h-row .l { color: var(--muted); }
+      .h-card .h-head {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 8px; padding-bottom: 8px;
+        border-bottom: 1px solid var(--line);
+      }
+      .h-card .h-head .ticker { font-size: 16px; font-weight: 700; }
+    }
+
+    @media (max-width: 1100px) {
+      .grid-2, .grid-3, .metrics, .metrics-5, .metrics-4 { grid-template-columns: 1fr; }
+      .col-2, .col-3, .col-4, .col-6, .col-8, .col-12 { grid-column: span 12; }
+    }
+
+    /* Toast for status fade */
+    .toast-ok { animation: fadeAfter 4s forwards; }
+    @keyframes fadeAfter {
+      0%, 80% { opacity: 1; }
+      100% { opacity: 0.4; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ────────────── MASTHEAD ────────────── -->
+  <div class="masthead">
+    <h1>Paper Portfolio Tracker</h1>
+    <span class="paper-badge">PAPER · SIMULATED · NO REAL CAPITAL</span>
+  </div>
+
+  <!-- ────────────── TABS ────────────── -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('overview', this)">Overview</button>
+    <button class="tab-btn" onclick="showTab('build', this)">Build</button>
+    <button class="tab-btn" onclick="showTab('trade', this)">Trade</button>
+    <button class="tab-btn" onclick="showTab('review', this)">Review</button>
+    <button class="tab-btn" onclick="showTab('settings', this)">Settings</button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- OVERVIEW                                                  -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div id="overview" class="tab active">
+    <!-- First-run onboarding (auto-hidden when complete or dismissed) -->
+    <div id="onboardingCard" class="onboarding" style="display:none;">
+      <button class="dismiss" onclick="dismissOnboarding()" title="Dismiss">×</button>
+      <h2 style="color:var(--accent);">Get started in 3 steps</h2>
+      <p class="small" style="margin:6px 0 0;">Set up your tracker in under two minutes.</p>
+      <ol id="onboardingSteps"></ol>
+    </div>
+
+    <!-- Sparkline NAV preview (click to expand → Review tab) -->
+    <div id="sparklineCard" class="sparkline-row" onclick="showTabById('review')" title="Click for full chart">
+      <div class="sparkline-info">
+        <div class="l">Portfolio NAV</div>
+        <div class="v" id="sparkNav">—</div>
+      </div>
+      <svg class="sparkline-svg" id="sparklineSvg" viewBox="0 0 800 60" preserveAspectRatio="none"></svg>
+      <div class="sparkline-cta" id="sparkPnL">—</div>
+    </div>
+
+    <!-- Metric tiles -->
+    <div class="metrics" id="metrics"></div>
+
+    <!-- AI thesis (if active) -->
+    <div id="thesisCard" class="card" style="display:none; margin-top:16px;">
+      <div class="card-header">
+        <h2>Investment thesis</h2>
+        <span class="pill" id="thesisBadge">—</span>
+      </div>
+      <p id="thesisText" style="white-space:pre-wrap; line-height:1.7; margin:0; color:var(--text);"></p>
+    </div>
+
+    <!-- Ask Gemini free-form -->
+    <div class="card" style="margin-top:16px;">
+      <div class="card-header">
+        <h2>Ask Gemini about your portfolio</h2>
+        <span class="pill ghost" id="askGeminiCount">0 cached</span>
+      </div>
+      <p class="small" style="margin-bottom:12px;">
+        Free-form question. Your current holdings, weights, P/L, cash, and thesis are sent as context.
+      </p>
+      <div class="ask-box">
+        <input id="askInput" placeholder="e.g. What if the Fed cuts 50bps next month? Where am I most exposed?"
+               onkeydown="if(event.key==='Enter') askGemini()" />
+        <button onclick="askGemini()" id="askBtn">Ask</button>
+        <button class="ghost" onclick="clearAskHistory()" title="Clear">⌫</button>
+      </div>
+      <div class="status" id="askStatus" style="margin-bottom:10px;"></div>
+      <div id="askResponse" class="ask-empty">No questions asked yet. Press Enter to send.</div>
+    </div>
+
+    <!-- Active basket -->
+    <div class="card" style="margin-top:16px;">
+      <div class="card-header">
+        <h2 id="basketTitle">Current basket</h2>
+        <button class="ghost tiny" onclick="showTabById('build')">Edit in Build →</button>
+      </div>
+      <p class="small" id="basketSubtitle"></p>
+      <div id="thesisList" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- BUILD                                                     -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div id="build" class="tab">
+    <div class="card">
+      <h2>Portfolio builder</h2>
+      <p class="small" style="margin-bottom:14px;">
+        Define your basket manually, paste in JSON from any AI, or use the AI workflow below to generate one. Weights auto-normalise.
+      </p>
+
+      <!-- Thesis -->
+      <label>Investment thesis (optional)</label>
+      <textarea id="manualThesis" rows="3"
+        placeholder="Describe your macro view, sector tilts, and rationale…"></textarea>
+
+      <!-- Picks table -->
+      <div style="margin-top:14px; overflow-x:auto;">
+        <table id="basketBuilderTable">
+          <thead>
+            <tr>
+              <th>Ticker</th><th>Name</th><th>Wt %</th><th>Why</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="basketRows"></tbody>
+        </table>
+      </div>
+      <button class="ghost tiny" onclick="addBasketRow()" style="margin-top:8px;">+ Add row</button>
+
+      <div style="margin-top:18px;" class="btns">
+        <button onclick="manualRebalance()">⇄ Rebalance at NAV</button>
+        <button class="ghost" onclick="populateBuilderFromCurrent()">Reset form to current basket</button>
+      </div>
+      <div class="status" id="resetStatus" style="margin-top:10px;"></div>
+      <p class="footnote">
+        <strong>Rebalance:</strong> liquidates all positions at current NAV and reinvests into the new basket. Trade history, cash log, and price history are preserved.
+        Full reset is in the Settings tab.
+      </p>
+    </div>
+
+    <!-- AI workflow (consolidated) -->
+    <div class="card">
+      <div class="card-header">
+        <h2>AI workflow</h2>
+        <span class="pill" id="aiModeBadge">Mode: Fresh portfolio</span>
+      </div>
+      <p class="small" style="margin-bottom:14px;">
+        Three steps. Generate a tailored prompt, paste it into your AI of choice (Claude, ChatGPT, Perplexity), then drop the JSON response back here.
+      </p>
+
+      <!-- Mode toggle -->
+      <div class="filter-chips" style="margin-bottom:14px;">
+        <button class="fchip active" data-aimode="fresh"
+          onclick="setAiMode('fresh', this)">FRESH PORTFOLIO</button>
+        <button class="fchip" data-aimode="evolve"
+          onclick="setAiMode('evolve', this)">EVOLVE CURRENT PORTFOLIO</button>
+      </div>
+
+      <!-- Steps progress -->
+      <div class="progress-steps">
+        <div class="step active" id="step1"><span class="step-num">1</span>Generate prompt</div>
+        <span class="step-arrow">→</span>
+        <div class="step" id="step2"><span class="step-num">2</span>Run in your AI</div>
+        <span class="step-arrow">→</span>
+        <div class="step" id="step3"><span class="step-num">3</span>Paste response</div>
+      </div>
+
+      <!-- Step 1: Generate -->
+      <div class="card-section">
+        <h3 style="color:var(--accent); margin-bottom:8px;">STEP 1 · Generate the prompt</h3>
+        <div class="btns" style="margin-bottom:8px;">
+          <button onclick="generatePortfolioPrompt()" id="genPromptBtn">✦ Generate prompt</button>
+          <button class="ghost" onclick="copyPrompt()" id="copyBtn" style="display:none;">⎘ Copy to clipboard</button>
+          <span id="copyConfirm" style="display:none; color:var(--good); font-size:12px; align-self:center;">Copied!</span>
+        </div>
+        <div class="status" id="promptStatus" style="margin-bottom:8px;"></div>
+        <div id="promptOutput" style="display:none;">
+          <textarea id="promptText" rows="14" readonly></textarea>
+        </div>
+      </div>
+
+      <!-- Step 2: External -->
+      <div class="card-section">
+        <h3 style="color:var(--accent); margin-bottom:8px;">STEP 2 · Run it in your AI</h3>
+        <p class="small">Paste the prompt into Claude / ChatGPT / Perplexity / Gemini. Wait for the JSON response (it will look like <span class="mono">[{"ticker":"NVDA",...}]</span>).</p>
+      </div>
+
+      <!-- Step 3: Import -->
+      <div class="card-section">
+        <h3 style="color:var(--accent); margin-bottom:8px;">STEP 3 · Paste the response</h3>
+        <textarea id="jsonImportField" rows="4"
+          placeholder='Paste the full JSON array (or the whole AI response — we tolerate surrounding text)'></textarea>
+        <div class="btns" style="margin-top:8px;">
+          <button onclick="importPicksFromJson()">⇩ Import &amp; preview in builder</button>
+        </div>
+        <div class="status" id="importStatus" style="margin-top:6px;"></div>
+        <p class="footnote">After importing, the picks land in the builder above. Review weights, then click Rebalance.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- TRADE                                                     -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div id="trade" class="tab">
+
+    <div class="card"><div class="metrics-5" id="engineMetrics"></div></div>
+
+    <!-- Quick actions -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Holdings · trade desk</h2>
+        <div class="btns">
+          <button class="secondary" onclick="fetchLiveMarketData()" id="fetchQuotesBtnTrade">⟳ Fetch quotes</button>
+          <button class="ghost" onclick="rebalanceAllToTarget()">⇄ Rebalance all to target</button>
+        </div>
+      </div>
+      <p class="small" style="margin-bottom:6px;">
+        Type a USD amount and click Buy/Sell, or use the <span class="mono">→ tgt</span> shortcut to auto-trade toward your target weight. ✕ closes a position. Trades show a preview before execution.
+      </p>
+      <div class="status" id="marketStatus" style="margin-bottom:10px;"></div>
+      <div id="candleFallbackBanner" style="display:none; background: rgba(243, 183, 79, 0.08); border: 1px solid var(--warn); border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; font-size: 12px; color: var(--text);">
+        <strong style="color: var(--warn);">ℹ Snapshot mode</strong> · Finnhub's <span class="mono">/stock/candle</span> endpoint requires a paid plan, so weekly OHLC is being built from daily <span class="mono">/quote</span> snapshots. Volume is unavailable. Fetch quotes once a day to fill the 5-day window.
+        <button class="ghost tiny" style="margin-left:8px;" onclick="retryCandleEndpoint()" title="Re-attempt /candle on next fetch (useful after upgrading)">Retry /candle</button>
+      </div>
+      <div id="rebalanceTableWrap" style="overflow-x:auto;">
+        <table id="rebalanceTable"></table>
+      </div>
+    </div>
+
+    <!-- Add new position -->
+    <div class="card">
+      <h2>Add new position</h2>
+      <div class="row">
+        <div class="col-3"><label>Ticker</label>
+          <input id="newTicker" placeholder="e.g. AAPL"
+            oninput="this.value=this.value.toUpperCase()" /></div>
+        <div class="col-3"><label>Name (optional)</label>
+          <input id="newTickerName" placeholder="e.g. Apple Inc." /></div>
+        <div class="col-2"><label>&nbsp;</label>
+          <button class="ghost" onclick="fetchNewTickerPrice()">Fetch price</button></div>
+        <div class="col-2"><label>Live price (USD)</label>
+          <input id="newTickerPrice" type="number" placeholder="0.00" readonly
+            style="background:#0a1128; color:var(--accent); font-weight:700;" /></div>
+        <div class="col-2"><label>Amount (USD)</label>
+          <input id="newTickerAmount" type="number" placeholder="0.00" min="0.01" step="1" /></div>
+        <div class="col-12 btns">
+          <button onclick="executeNewPosition()">Add to portfolio</button>
+          <button class="ghost" onclick="clearNewPositionForm()">Clear</button>
+        </div>
+        <div class="col-12"><div class="status" id="newPositionStatus"></div></div>
+      </div>
+    </div>
+
+    <!-- Cash management (folded in from old Cash tab) -->
+    <div class="card">
+      <h2>Cash management</h2>
+      <p class="small" style="margin-bottom:14px;">
+        Add or remove external capital. Affects NAV directly. The Reset cash override is in Settings.
+      </p>
+      <div class="metrics-4" id="cashMetrics" style="margin-bottom:16px;"></div>
+
+      <div class="grid grid-2">
+        <div>
+          <h3 style="color:var(--good);">Deposit</h3>
+          <div class="row">
+            <div class="col-6"><label>Amount (USD)</label>
+              <input id="depositAmount" type="number" placeholder="0.00" min="0.01" step="1" /></div>
+            <div class="col-6"><label>Note</label>
+              <input id="depositNote" placeholder="e.g. Monthly contribution" /></div>
+            <div class="col-12 btns">
+              <button onclick="depositCash()">Deposit</button>
+            </div>
+            <div class="col-12"><div class="status" id="depositStatus"></div></div>
+          </div>
+        </div>
+
+        <div>
+          <h3 style="color:var(--bad);">Withdraw</h3>
+          <div class="row">
+            <div class="col-6"><label>Amount (USD)</label>
+              <input id="withdrawAmount" type="number" placeholder="0.00" min="0.01" step="1" /></div>
+            <div class="col-6"><label>Note</label>
+              <input id="withdrawNote" placeholder="e.g. Profit taking" /></div>
+            <div class="col-12 btns">
+              <button class="secondary" onclick="withdrawCash()">Withdraw</button>
+            </div>
+            <div class="col-12"><div class="status" id="withdrawStatus"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-section">
+        <h3>Cash flow log</h3>
+        <div style="overflow-x:auto;"><table id="cashLogTable"></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- REVIEW (formerly Logs)                                    -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div id="review" class="tab">
+    <!-- NAV chart -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Portfolio NAV</h2>
+        <span class="pill" id="navChartRange">—</span>
+      </div>
+      <svg class="chart" id="chart" viewBox="0 0 960 260"></svg>
+    </div>
+
+    <!-- Component prices (with Y-axis labels) -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Component prices · % from base</h2>
+        <div id="componentLegend" style="display:flex; flex-wrap:wrap; gap:8px; font-size:11px;"></div>
+      </div>
+      <p class="footnote" style="margin-bottom:8px;">Dashed line = average cost basis per position. Snapshots accumulate each time you fetch quotes.</p>
+      <svg class="chart" id="componentChart" viewBox="0 0 960 280"></svg>
+    </div>
+
+    <!-- Holdings analysis -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Portfolio risk analysis (Gemini)</h2>
+        <button class="tiny" onclick="fetchPortfolioAnalysis()" id="analysisBtn">✦ Analyse with Gemini</button>
+      </div>
+      <p class="footnote" style="margin-bottom:10px;">
+        Sends current portfolio + market context to Gemini with Google Search grounding. Requires Gemini key (Settings) and live quotes.
+      </p>
+      <div class="status" id="analysisStatus" style="margin-bottom:8px;"></div>
+      <div id="analysisOutput" style="display:none;">
+        <textarea id="analysisText" readonly rows="20"
+          style="line-height:1.7; font-family:inherit;"></textarea>
+      </div>
+    </div>
+
+    <!-- Logs -->
+    <div class="grid grid-2">
+      <div class="card">
+        <h2>Trade log</h2>
+        <div style="overflow-x:auto;"><table id="tradeTable"></table></div>
+      </div>
+      <div class="card">
+        <h2>Rebalance log</h2>
+        <div id="rebalanceLogList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- SETTINGS                                                  -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div id="settings" class="tab">
+    <!-- API keys -->
+    <div class="card">
+      <h2>API keys</h2>
+      <p class="small" style="margin-bottom:14px;">All keys stored in browser localStorage. Never sent anywhere except directly to the respective providers.</p>
+
+      <div class="row">
+        <div class="col-6">
+          <label>Finnhub API key <span class="muted-text mono" style="font-size:10px;">(quotes, candles)</span></label>
+          <input id="finnhubKey" placeholder="Paste Finnhub token" />
+        </div>
+        <div class="col-6">
+          <label>Google AI Studio key <span class="muted-text mono" style="font-size:10px;">(Gemini news + analysis + prompts)</span></label>
+          <input id="geminiKey" placeholder="Paste Gemini API key" />
+        </div>
+        <div class="col-4">
+          <label>Gemini model</label>
+          <select id="geminiModel">
+            <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+            <option value="gemini-2.5-flash" selected>gemini-2.5-flash</option>
+            <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+          </select>
+        </div>
+        <div class="col-4">
+          <label>News lookback (days)</label>
+          <select id="geminiNewsWindow">
+            <option value="1">Last 24h</option>
+            <option value="3" selected>Last 3 days</option>
+            <option value="7">Last 7 days</option>
+          </select>
+        </div>
+        <div class="col-4">
+          <label>Price history lookback (days)</label>
+          <input id="lookbackDays" type="number" min="20" max="180" value="45" />
+        </div>
+        <div class="col-12 btns">
+          <button onclick="saveAllSettings()">Save settings</button>
+        </div>
+        <div class="col-12"><div class="status" id="settingsStatus"></div></div>
+      </div>
+    </div>
+
+    <!-- Backup -->
+    <div class="card">
+      <h2>Backup &amp; restore</h2>
+      <p class="small" style="margin-bottom:12px;">
+        Export your full portfolio state as a JSON file (basket, trades, cash log, valuation history, settings). Re-import to restore on another device or recover from a cleared cache.
+      </p>
+      <div class="btns">
+        <button onclick="exportState()">⇧ Download backup</button>
+        <button class="ghost" onclick="document.getElementById('importFile').click()">⇩ Restore from file</button>
+        <input type="file" id="importFile" accept=".json,application/json"
+          style="display:none;" onchange="importState(event)" />
+      </div>
+      <div class="status" id="backupStatus" style="margin-top:10px;"></div>
+    </div>
+
+    <!-- Cash override -->
+    <div class="card">
+      <h2>Cash balance override</h2>
+      <p class="small" style="margin-bottom:12px;">
+        Set the cash balance directly — useful to correct a discrepancy. Logs the adjustment.
+      </p>
+      <div class="row">
+        <div class="col-4"><label>Set cash to (USD)</label>
+          <input id="resetCashAmount" type="number" placeholder="0.00" min="0" step="1" /></div>
+        <div class="col-8"><label>Reason</label>
+          <input id="resetCashNote" placeholder="e.g. Correcting opening balance" /></div>
+        <div class="col-12 btns">
+          <button class="warn" onclick="resetCashBalance()">Set cash balance</button>
+        </div>
+        <div class="col-12"><div class="status" id="resetCashStatus"></div></div>
+      </div>
+    </div>
+
+    <!-- Full reset (DANGER) -->
+    <div class="card">
+      <h2 style="color:var(--bad);">Danger zone · full reset</h2>
+      <p class="small" style="margin-bottom:0;">
+        Wipes all holdings, trades, cash, valuation history, basket, and rebalance log. Restarts the portfolio from $1,000 with the default tech basket. <strong>This cannot be undone.</strong>
+      </p>
+      <div class="confirm-reset">
+        <label>Type the word <span class="mono" style="color:var(--bad);">RESET</span> to enable the button</label>
+        <input id="resetConfirmInput" placeholder="RESET"
+          oninput="onResetTyped(this.value)" />
+        <div class="btns" style="margin-top:10px;">
+          <button class="danger" onclick="fullReset()" id="fullResetBtn" disabled>I understand, wipe everything</button>
+          <button class="ghost" onclick="exportState()">Backup first →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- News tab is consumed: news is now displayed via the per-ticker drawer + "Ask Gemini" -->
+
+  <!-- Ticker drill-down drawer -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+  <div class="drawer" id="drawer">
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    <div id="drawerContent"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   STORAGE KEYS  ── unchanged pp2_ prefix preserves existing data
+   ============================================================ */
+const SK = {
+  holdings: 'pp2_holdings', cash: 'pp2_cash', trades: 'pp2_trades',
+  ai: 'pp2_ai_log', risk: 'pp2_risk_log', valuation: 'pp2_valuation',
+  prices: 'pp2_price_history', news: 'pp2_news', settings: 'pp2_settings',
+  gemini: 'pp2_gemini', lastRefresh: 'pp2_last_refresh', cashLog: 'pp2_cash_log',
+  aiBasket: 'pp2_ai_basket', aiThesis: 'pp2_ai_thesis',
+  rebalanceLog: 'pp2_rebalance_log', priceSnap: 'pp2_price_snaps',
+  // ── new in v8 ──
+  onboardingDismissed: 'pp2_onboarding_dismissed',
+  askHistory: 'pp2_ask_history',
+  holdingsSort: 'pp2_holdings_sort',
+  holdingsFilter: 'pp2_holdings_filter',
+  aiMode: 'pp2_ai_mode'
+};
+
+const DEFAULT_BASKET = [
+  {ticker:'NVDA', name:'NVIDIA',                      targetWeight:0.15, why:'AI accelerator leader and capex beneficiary.'},
+  {ticker:'TSM',  name:'TSMC ADR',                    targetWeight:0.15, why:'Leading-edge foundry backbone for advanced chips.'},
+  {ticker:'ASML', name:'ASML Holding',                targetWeight:0.10, why:'Critical lithography supplier with AI order leverage.'},
+  {ticker:'MELI', name:'MercadoLibre',                targetWeight:0.10, why:'LatAm ecommerce and fintech compounder.'},
+  {ticker:'IBN',  name:'ICICI Bank ADR',              targetWeight:0.10, why:'Indian private-sector bank with structural growth.'},
+  {ticker:'EWJ',  name:'iShares MSCI Japan ETF',      targetWeight:0.10, why:'Japan governance and reform sleeve.'},
+  {ticker:'IEF',  name:'iShares 7-10yr Treasury ETF', targetWeight:0.15, why:'High-quality duration sleeve.'},
+  {ticker:'LQD',  name:'iShares IG Corporate Bond ETF',targetWeight:0.15, why:'Investment-grade credit carry sleeve.'}
+];
+
+const DEF_SETTINGS = {
+  startingCapital: 1000, initialCashBufferPct: 5, minCashBufferPct: 5,
+  maxWeightPct: 20, maxTradePct: 3, turnoverCapPct: 10,
+  buyMomentumPct: 2, sellMomentumPct: -2, cooldownHours: 8,
+  lookbackDays: 45, newsLookback: 3
+};
+const DEF_GEMINI = {apiKey:'', model:'gemini-2.5-flash', newsWindowDays:3};
+
+/* ============================================================
+   STATE
+   ============================================================ */
+function load(key, fb) {
+  try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : structuredClone(fb); }
+  catch(e) { return structuredClone(fb); }
+}
+function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+let settings  = load(SK.settings,  DEF_SETTINGS);
+let gemini    = load(SK.gemini,    DEF_GEMINI);
+let holdings  = load(SK.holdings,  []);
+let cashUSD   = load(SK.cash,      null);
+let tradeLog  = load(SK.trades,    []);
+let aiLog     = load(SK.ai,        []);
+let riskLog   = load(SK.risk,      []);
+let valuation = load(SK.valuation, []);
+let priceHist = load(SK.prices,    {});
+let newsState = load(SK.news,      []);
+let cashLog   = load(SK.cashLog,   []);
+let aiBasket  = load(SK.aiBasket,  null);
+let aiThesis  = load(SK.aiThesis,  null);
+let rebalanceLog = load(SK.rebalanceLog, []);
+let priceSnap    = load(SK.priceSnap,    []);
+let askHistory   = load(SK.askHistory, []);
+let aiMode       = load(SK.aiMode, 'fresh');
+let holdingsSort = load(SK.holdingsSort, {col:'currentWt', dir:'desc'});
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+const todayISO = () => new Date().toISOString().slice(0,10);
+const nowISO   = () => new Date().toISOString();
+const toUSD    = x  => `$${Number(x||0).toFixed(2)}`;
+const toPct    = x  => (x===null||x===undefined||!isFinite(x)) ? '—' : `${Number(x).toFixed(2)}%`;
+const safeNum  = (x, d=0) => { const n = Number(x); return isFinite(n) ? n : d; };
+const fmtVol = v => {
+  if (!v || !isFinite(v)) return '—';
+  if (v >= 1e9) return (v/1e9).toFixed(2) + 'B';
+  if (v >= 1e6) return (v/1e6).toFixed(2) + 'M';
+  if (v >= 1e3) return (v/1e3).toFixed(1) + 'K';
+  return String(v);
+};
+const fmtRelTime = iso => {
+  if (!iso) return '';
+  const ms = Date.now() - new Date(iso).getTime();
+  if (ms < 60_000) return 'just now';
+  if (ms < 3600_000) return Math.floor(ms/60_000) + 'm ago';
+  if (ms < 86_400_000) return Math.floor(ms/3600_000) + 'h ago';
+  return Math.floor(ms/86_400_000) + 'd ago';
+};
+
+function getPortfolioValue() {
+  return Number((
+    holdings.reduce((s,h) => s + safeNum(h.currentValueUSD, safeNum(h.initialUSD,0)), 0)
+    + safeNum(cashUSD,0)
+  ).toFixed(2));
+}
+
+function persistAll() {
+  save(SK.settings,  settings);
+  save(SK.gemini,    gemini);
+  save(SK.holdings,  holdings);
+  save(SK.cash,      cashUSD);
+  save(SK.trades,    tradeLog);
+  save(SK.ai,        aiLog);
+  save(SK.risk,      riskLog);
+  save(SK.valuation, valuation);
+  save(SK.prices,    priceHist);
+  save(SK.news,      newsState);
+  save(SK.cashLog,   cashLog);
+  save(SK.aiBasket,  aiBasket);
+  save(SK.aiThesis,  aiThesis);
+  save(SK.rebalanceLog, rebalanceLog);
+  save(SK.priceSnap,    priceSnap);
+  save(SK.askHistory,   askHistory);
+  save(SK.aiMode,       aiMode);
+  save(SK.holdingsSort, holdingsSort);
+}
+
+function markValuation(note) {
+  const item = {
+    date: todayISO(),
+    portfolioValueUSD: getPortfolioValue(),
+    cashUSD: Number(safeNum(cashUSD,0).toFixed(2)),
+    note
+  };
+  const last = valuation[valuation.length-1];
+  if (last && last.date === item.date && last.note === note) {
+    valuation[valuation.length-1] = item;
+  } else {
+    valuation.push(item);
+  }
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+function initializePortfolio(force=false, overrideBasket=null) {
+  if (holdings.length && cashUSD !== null && !force) return;
+  const basket = overrideBasket || aiBasket || DEFAULT_BASKET;
+  const capital = safeNum(settings.startingCapital, 1000);
+  const cashPct = Math.max(0, safeNum(settings.initialCashBufferPct, 5)) / 100;
+  cashUSD = Number((capital * cashPct).toFixed(2));
+  const investable = capital - cashUSD;
+  holdings = basket.map(h => ({
+    ticker: h.ticker, name: h.name,
+    targetWeight: h.targetWeight,
+    maxWeightPct: safeNum(settings.maxWeightPct, 20),
+    initialUSD: Number((investable * h.targetWeight).toFixed(2)),
+    shares: null, lastPrice: null, lastClose: null,
+    currentValueUSD: Number((investable * h.targetWeight).toFixed(2)),
+    momentum1dPct: null, momentum5dPct: null, momentum20dPct: null,
+    weekOHLC: null,        // ← new
+    lastFetchAt: null,     // ← new
+    status: 'Awaiting first quote fetch',
+    why: h.why,
+    lastTradeAt: null
+  }));
+  tradeLog = [{
+    timestamp: nowISO(), action:'INIT', ticker:'ALL',
+    tradeUSD: investable, shares:'-',
+    reason: `Initialized with ${toUSD(capital)} capital and ${toUSD(cashUSD)} cash reserve.`
+  }];
+  aiLog = []; riskLog = [];
+  valuation = [{
+    date: todayISO(),
+    portfolioValueUSD: Number(capital.toFixed(2)),
+    cashUSD: Number(cashUSD.toFixed(2)),
+    note: 'Initial capital'
+  }];
+  priceHist = {}; newsState = [];
+  cashLog = [{
+    timestamp: nowISO(), type: 'DEPOSIT',
+    amount: capital, balance: cashUSD,
+    note: `Portfolio initialised — ${toUSD(investable)} allocated to basket, ${toUSD(cashUSD)} held as cash.`
+  }];
+  persistAll();
+}
+
+function normalizeState() {
+  // Backfill new v8 fields on existing holdings
+  holdings = (holdings||[]).map(h => ({
+    ...h,
+    initialUSD: h.initialUSD ?? h.initialEUR ?? 0,
+    currentValueUSD: h.currentValueUSD ?? h.currentValueEUR ?? h.initialUSD ?? 0,
+    maxWeightPct: h.maxWeightPct ?? settings.maxWeightPct,
+    why: h.why || '',
+    lastTradeAt: h.lastTradeAt || null,
+    weekOHLC: h.weekOHLC ?? null,       // ← new
+    lastFetchAt: h.lastFetchAt ?? null  // ← new
+  }));
+  if (!Number.isFinite(safeNum(cashUSD, NaN))) {
+    const leg = load('pp_cash', null);
+    cashUSD = Number.isFinite(safeNum(leg, NaN)) ? Number(leg) : null;
+  }
+  tradeLog = (tradeLog||[]).map(t => ({
+    ...t,
+    tradeUSD: t.tradeUSD ?? t.tradeEUR ?? '-',
+    timestamp: t.timestamp || nowISO()
+  }));
+  valuation = (valuation||[]).map(v => ({
+    ...v,
+    portfolioValueUSD: v.portfolioValueUSD ?? v.portfolioValueEUR ?? 0,
+    cashUSD: v.cashUSD ?? 0
+  }));
+  if (!Array.isArray(aiLog))   aiLog = [];
+  if (!Array.isArray(riskLog)) riskLog = [];
+  if (!priceHist || typeof priceHist !== 'object') priceHist = {};
+  if (!Array.isArray(newsState)) newsState = [];
+  if (!Array.isArray(cashLog)) cashLog = [];
+  if (aiBasket && !Array.isArray(aiBasket)) aiBasket = null;
+  if (!Array.isArray(rebalanceLog)) rebalanceLog = [];
+  if (!Array.isArray(priceSnap)) priceSnap = [];
+  if (!Array.isArray(askHistory)) askHistory = [];
+  if (!holdings.length) { initializePortfolio(true); return; }
+  persistAll();
+}
+/* ============================================================
+   TAB NAV
+   ============================================================ */
+function showTab(id, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (id === 'review') { drawChart(); drawComponentChart(); }
+  if (id === 'overview') { drawSparkline(); }
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+function showTabById(id) {
+  const btns = document.querySelectorAll('.tab-btn');
+  const map = {overview:0, build:1, trade:2, review:3, settings:4};
+  showTab(id, btns[map[id]]);
+}
+
+function setStatus(id, msg, good=true) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = `<span class="${good?'good':'bad'}">${msg}</span>`;
+  if (good && msg) {
+    // Auto-fade after 4s for success messages
+    el.classList.remove('toast-ok');
+    void el.offsetWidth; // reflow to restart anim
+    el.classList.add('toast-ok');
+  }
+}
+
+/* ============================================================
+   ONBOARDING (T3-18)
+   ============================================================ */
+function renderOnboarding() {
+  const dismissed = localStorage.getItem(SK.onboardingDismissed) === 'true';
+  const card = document.getElementById('onboardingCard');
+  if (!card) return;
+  if (dismissed) { card.style.display = 'none'; return; }
+
+  const finnhubSet = !!localStorage.getItem('pp2_finnhub_key');
+  const geminiSet  = !!gemini.apiKey;
+  const customised = !!aiBasket;
+  const stepsList = [
+    {done: finnhubSet, label: 'Add a Finnhub API key', target: 'settings'},
+    {done: geminiSet,  label: 'Add a Google AI Studio (Gemini) key', target: 'settings'},
+    {done: customised, label: 'Build your basket — or use the AI workflow', target: 'build'}
+  ];
+  if (stepsList.every(s => s.done)) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  document.getElementById('onboardingSteps').innerHTML = stepsList.map(s => `
+    <li class="${s.done ? 'done' : ''}">
+      ${s.done ? '✓ ' : ''}${s.label}
+      ${s.done ? '' : `<button class="jump" onclick="showTabById('${s.target}')">Go to ${s.target} →</button>`}
+    </li>
+  `).join('');
+}
+function dismissOnboarding() {
+  localStorage.setItem(SK.onboardingDismissed, 'true');
+  document.getElementById('onboardingCard').style.display = 'none';
+}
+
+/* ============================================================
+   BASKET BUILDER (Build tab)
+   ============================================================ */
+function addBasketRow(ticker='', name='', wt='', why='') {
+  const tbody = document.getElementById('basketRows');
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td><input style="font-size:13px;padding:6px 8px;" placeholder="NVDA" value="${ticker}" /></td>
+    <td><input style="font-size:13px;padding:6px 8px;" placeholder="Company name" value="${name}" /></td>
+    <td><input type="number" min="0" max="100" step="0.1" style="font-size:13px;padding:6px 8px;width:80px;" placeholder="20" value="${wt}" /></td>
+    <td><input style="font-size:13px;padding:6px 8px;" placeholder="One-line rationale" value="${why}" /></td>
+    <td><button class="ghost tiny" onclick="this.closest('tr').remove()">✕</button></td>`;
+  tbody.appendChild(row);
+}
+
+function readBasketFromForm() {
+  const rows = document.querySelectorAll('#basketRows tr');
+  const picks = [];
+  rows.forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    const ticker = (inputs[0]?.value || '').trim().toUpperCase();
+    const name   = (inputs[1]?.value || '').trim() || ticker;
+    const wt     = parseFloat(inputs[2]?.value || '0') || 0;
+    const why    = (inputs[3]?.value || '').trim();
+    if (ticker && wt > 0) picks.push({ticker, name, targetWeight: wt, why});
+  });
+  if (!picks.length) return null;
+  const total = picks.reduce((s,p) => s + p.targetWeight, 0);
+  return picks.map(p => ({...p, targetWeight: Number((p.targetWeight / total).toFixed(4))}));
+}
+
+function populateBuilderFromCurrent() {
+  document.getElementById('basketRows').innerHTML = '';
+  const basket = aiBasket || DEFAULT_BASKET;
+  basket.forEach(h => addBasketRow(h.ticker, h.name, (h.targetWeight*100).toFixed(1), h.why || ''));
+  if (aiThesis) document.getElementById('manualThesis').value = aiThesis;
+}
+
+/* ============================================================
+   AI WORKFLOW — mode toggle + prompt generation
+   ============================================================ */
+function setAiMode(mode, btn) {
+  aiMode = mode;
+  save(SK.aiMode, aiMode);
+  document.querySelectorAll('[data-aimode]').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById('aiModeBadge').textContent =
+    mode === 'fresh' ? 'Mode: Fresh portfolio' : 'Mode: Evolve current portfolio';
+}
+
+function buildCurrentPortfolioContext() {
+  // Used in EVOLVE mode + Ask Gemini
+  const nav = getPortfolioValue();
+  const cash = safeNum(cashUSD, 0);
+  const cashPct = nav > 0 ? (cash/nav*100).toFixed(1) : '0.0';
+  const startCap = safeNum(settings.startingCapital, 1000);
+  const totalReturn = startCap > 0 ? ((nav - startCap)/startCap*100).toFixed(2) : '—';
+
+  const positionLines = holdings.map(h => {
+    const wt = nav > 0 ? (safeNum(h.currentValueUSD,0)/nav*100).toFixed(2) : '—';
+    const initial = safeNum(h.initialUSD, 0);
+    const current = safeNum(h.currentValueUSD, 0);
+    const posReturn = initial > 0 ? ((current - initial)/initial*100).toFixed(2) : '—';
+    const tgt = (safeNum(h.targetWeight,0)*100).toFixed(1);
+    const px = h.lastPrice ? `$${h.lastPrice.toFixed(2)}` : 'no quote';
+    const wkPct = h.weekOHLC && h.weekOHLC.open
+      ? ((h.weekOHLC.close - h.weekOHLC.open)/h.weekOHLC.open*100).toFixed(2)
+      : null;
+    const wkStr = wkPct !== null ? `, week ${wkPct >= 0 ? '+' : ''}${wkPct}%` : '';
+    return `  - ${h.ticker} (${h.name}): current ${wt}% / target ${tgt}%, value ${toUSD(current)}, P/L ${posReturn}%, price ${px}${wkStr}${h.why ? ' — ' + h.why : ''}`;
+  }).join('\n');
+
+  return {
+    nav, cash, cashPct, totalReturn, positionLines,
+    holdingsCount: holdings.length,
+    thesis: aiThesis || '(none set)'
+  };
+}
+
+async function generatePortfolioPrompt() {
+  const key = gemini.apiKey;
+  if (!key) {
+    setStatus('promptStatus', 'Add a Gemini API key in Settings first.', false);
+    return;
+  }
+  const btn = document.getElementById('genPromptBtn');
+  if (btn) { btn.textContent = '⏳ Generating…'; btn.disabled = true; }
+  setStatus('promptStatus', 'Asking Gemini to draft the prompt…');
+  document.getElementById('promptOutput').style.display = 'none';
+  document.getElementById('copyBtn').style.display = 'none';
+
+  const today = new Date().toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+
+  // ── Build the meta-prompt based on mode ──
+  let metaPrompt;
+  if (aiMode === 'evolve' && holdings.length) {
+    const ctx = buildCurrentPortfolioContext();
+    metaPrompt = `Today is ${today}.
+
+You are an expert prompt engineer specialising in financial analysis instructions for large language models.
+
+Write a single, self-contained prompt that a user can paste directly into any AI assistant (Claude, ChatGPT, Perplexity, Gemini, etc.) to receive an EVOLVED hedge-fund-style US equity portfolio.
+
+The user already holds the portfolio below. They want recommendations to evolve it — keep what's working, cut what isn't, add what fills gaps — given current market conditions.
+
+CURRENT PORTFOLIO (NAV: ${toUSD(ctx.nav)}, return since inception: ${ctx.totalReturn}%):
+${ctx.positionLines}
+Cash: ${toUSD(ctx.cash)} (${ctx.cashPct}% of NAV)
+
+Existing thesis: ${ctx.thesis}
+
+The prompt you write must instruct the AI to:
+1. Use current market conditions, macro backdrop, sector momentum, earnings trends, and valuation as of today's date.
+2. Explicitly KEEP, CUT, or ADD positions relative to the current portfolio above. Justify each decision.
+3. Write an updated investment thesis (~300 words) that explains the pivot, what changed in the macro view, and the risk/reward tilt of the new portfolio relative to the old.
+4. Select 6–10 US-listed equity tickers (common stock or ADR only — no ETFs, no bonds, no crypto). May include some current positions.
+5. Long-only. Weights must sum to 1.0. Max single position 0.25. Higher conviction = higher weight.
+6. Return output in this EXACT format — thesis first, then a raw JSON array:
+
+INVESTMENT THESIS:
+[~300 word thesis explaining the evolution from current portfolio]
+
+PICKS:
+[{"ticker":"NVDA","name":"NVIDIA Corporation","weight":0.22,"why":"One sentence catalyst including whether this is KEEP/ADD/RESIZE."},...]
+
+The JSON array must use exactly these four keys: ticker, name, weight, why. Each "why" should briefly note whether the position is KEEP, ADD, or RESIZE relative to the current portfolio. No other keys. No trailing text after the array.
+
+Embed the current portfolio context (positions, weights, P/L, cash, existing thesis) directly inside the prompt you write so the receiving AI has full context.
+
+Write only the prompt text itself — no preamble, no explanation, no meta-commentary.`;
+  } else {
+    metaPrompt = `Today is ${today}.
+
+You are an expert prompt engineer specialising in financial analysis instructions for large language models.
+
+Write a single, self-contained prompt that a user can paste directly into any AI assistant (Claude, ChatGPT, Perplexity, Gemini, etc.) to receive a high-quality, hedge-fund-style US equity portfolio.
+
+The prompt you write must instruct the AI to:
+1. Use current market conditions, macro backdrop, sector momentum, earnings trends, and valuation as of today's date.
+2. Write an investment thesis of approximately 300 words covering: macro view, key drivers, sector tilts, risk factors, and overall portfolio strategy.
+3. Select 6–10 US-listed equity tickers (common stock or ADR only — no ETFs, no bonds, no crypto).
+4. Long-only. Weights must sum to 1.0. Max single position 0.25. Higher conviction = higher weight.
+5. Return output in this EXACT format — thesis first, then a raw JSON array with no markdown fences, no wrapper object:
+
+INVESTMENT THESIS:
+[~300 word thesis here]
+
+PICKS:
+[{"ticker":"NVDA","name":"NVIDIA Corporation","weight":0.22,"why":"One sentence catalyst."},...]
+
+The JSON array must use exactly these four keys: ticker, name, weight, why. No other keys. No trailing text after the array.
+
+Write only the prompt text itself — no preamble, no explanation, no meta-commentary.`;
+  }
+
+  try {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(gemini.model||'gemini-2.5-flash')}:generateContent?key=${encodeURIComponent(key)}`;
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        contents: [{parts: [{text: metaPrompt}]}],
+        generationConfig: {temperature: 0.5, maxOutputTokens: 4096}
+      })
+    });
+    if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0,200)}`);
+    const data = await res.json();
+    const prompt = (data?.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('').trim();
+    if (!prompt) throw new Error('Empty response from Gemini.');
+
+    const ta = document.getElementById('promptText');
+    ta.value = prompt;
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 600) + 'px';
+    document.getElementById('promptOutput').style.display = 'block';
+    document.getElementById('copyBtn').style.display = 'inline-block';
+    setStatus('promptStatus', `✓ Prompt ready (${aiMode === 'evolve' ? 'evolve mode' : 'fresh mode'}) — copy and paste into any AI.`, true);
+
+    // Mark step 1 complete in the progress UI
+    document.getElementById('step1').classList.add('complete');
+    document.getElementById('step2').classList.add('active');
+  } catch(e) {
+    setStatus('promptStatus', `Error: ${e.message}`, false);
+  } finally {
+    if (btn) { btn.textContent = '✦ Generate prompt'; btn.disabled = false; }
+  }
+}
+
+function copyPrompt() {
+  const ta = document.getElementById('promptText');
+  if (!ta || !ta.value) return;
+  navigator.clipboard.writeText(ta.value).then(() => {
+    const el = document.getElementById('copyConfirm');
+    if (el) { el.style.display = 'inline'; setTimeout(() => el.style.display = 'none', 2000); }
+  }).catch(() => { ta.select(); document.execCommand('copy'); });
+}
+
+function importPicksFromJson() {
+  const raw = (document.getElementById('jsonImportField').value || '').trim();
+  if (!raw) return setStatus('importStatus', 'Paste the AI response first.', false);
+
+  let picks;
+  try {
+    const s = raw.indexOf('[');
+    const e = raw.lastIndexOf(']');
+    if (s < 0 || e <= s) throw new Error('No JSON array found in the response.');
+    const clean = raw.slice(s, e + 1)
+      .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '')
+      .replace(/\r\n|\r/g, ' ').replace(/\n/g, ' ').replace(/\t/g, ' ');
+    picks = JSON.parse(clean);
+    if (!Array.isArray(picks) || !picks.length) throw new Error('JSON array is empty.');
+  } catch(e) {
+    return setStatus('importStatus', `Parse error: ${e.message}`, false);
+  }
+
+  // Try to extract thesis text (everything before the JSON array)
+  const arrStart = raw.indexOf('[');
+  if (arrStart > 0) {
+    const possibleThesis = raw.slice(0, arrStart)
+      .replace(/INVESTMENT THESIS:?/i, '')
+      .replace(/PICKS:?/i, '')
+      .trim();
+    if (possibleThesis.length > 50) {
+      document.getElementById('manualThesis').value = possibleThesis;
+    }
+  }
+
+  const normalised = picks.map(p => ({
+    ticker: String(p.ticker || '').toUpperCase().trim(),
+    name:   String(p.name   || p.ticker || '').trim(),
+    weight: safeNum(p.weight ?? p.targetWeight, 0),
+    why:    String(p.why    || p.reason || '').trim()
+  })).filter(p => p.ticker && p.weight > 0);
+
+  if (!normalised.length)
+    return setStatus('importStatus', 'No valid picks found (need ticker + weight > 0).', false);
+
+  document.getElementById('basketRows').innerHTML = '';
+  normalised.forEach(p => addBasketRow(p.ticker, p.name, (p.weight*100).toFixed(1), p.why));
+  document.getElementById('jsonImportField').value = '';
+  setStatus('importStatus', `✓ Imported ${normalised.length} picks. Review weights above, then click Rebalance.`, true);
+
+  // Mark step 3 complete
+  document.getElementById('step3').classList.add('complete');
+  // Scroll up to show builder
+  document.getElementById('basketBuilderTable').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+/* ============================================================
+   REBALANCE
+   ============================================================ */
+function manualRebalance() {
+  const picks = readBasketFromForm();
+  if (!picks) return setStatus('resetStatus', 'Add at least one ticker with a non-zero weight.', false);
+  if (!confirm(`Rebalance portfolio?\n\nAll ${holdings.length} positions liquidated at current mark and reinvested into ${picks.length} new positions at current NAV.\n\nLogs and price history preserved.`)) return;
+
+  const nav = getPortfolioValue();
+  const ts = nowISO();
+  let proceeds = safeNum(cashUSD, 0);
+  holdings.forEach(h => {
+    const val = safeNum(h.currentValueUSD, safeNum(h.initialUSD, 0));
+    if (val > 0) {
+      proceeds += val;
+      tradeLog.unshift({timestamp:ts, action:'SELL', ticker:h.ticker,
+        tradeUSD:val, shares:safeNum(h.shares,0), reason:'Rebalance — full liquidation'});
+      cashLog.unshift({timestamp:ts, type:'SELL', amount:val,
+        balance:proceeds, note:`Rebalance liquidation: ${h.ticker}`});
+    }
+  });
+
+  aiThesis = document.getElementById('manualThesis').value.trim() || null;
+  aiBasket = picks;
+  cashUSD = 0;
+  holdings = picks.map(p => ({
+    ticker: p.ticker, name: p.name, targetWeight: p.targetWeight,
+    maxWeightPct: safeNum(settings.maxWeightPct, 20),
+    initialUSD: Number((nav * p.targetWeight).toFixed(2)),
+    shares: null, lastPrice: null, lastClose: null,
+    currentValueUSD: Number((nav * p.targetWeight).toFixed(2)),
+    momentum1dPct:null, momentum5dPct:null, momentum20dPct:null,
+    weekOHLC: null, lastFetchAt: null,
+    status: 'Rebalanced — awaiting quote fetch',
+    why: p.why, lastTradeAt: ts
+  }));
+
+  picks.forEach(p => {
+    const amt = Number((nav * p.targetWeight).toFixed(2));
+    tradeLog.unshift({timestamp:ts, action:'BUY', ticker:p.ticker,
+      tradeUSD:amt, shares:'-', reason:'Rebalance — new allocation'});
+    cashLog.unshift({timestamp:ts, type:'BUY', amount:-amt,
+      balance:cashUSD, note:`Rebalance entry: ${p.ticker}`});
+  });
+
+  markValuation('Rebalance');
+  rebalanceLog.unshift({
+    timestamp: ts,
+    navAtRebalance: nav,
+    positionCount: picks.length,
+    picks: picks.map(p => ({ticker:p.ticker, name:p.name, weight:p.targetWeight, why:p.why}))
+  });
+  persistAll(); renderAll();
+  setStatus('resetStatus', `✓ Rebalanced ${picks.length} positions at NAV ${toUSD(nav)}. Fetch quotes to mark to market.`, true);
+}
+/* ============================================================
+   MARKET DATA — quotes + weekly OHLCV (NEW)
+   ============================================================ */
+function getFinnhubKey() {
+  return localStorage.getItem('pp2_finnhub_key') || '';
+}
+async function fetchJson(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+async function fetchTickerQuote(ticker, key) {
+  return fetchJson(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(ticker)}&token=${encodeURIComponent(key)}`);
+}
+
+/**
+ * v8.1: Finnhub deprecated /stock/candle on free tier (returns 403 since 2024).
+ * We try /candle once and remember the result. Fall back to building weekly
+ * OHLC from accumulated daily /quote snapshots — works on free tier.
+ *
+ * Volume is unavailable without /candle, so the Wk Vol column will show "—"
+ * for free-tier users with a tooltip explaining why.
+ */
+async function fetchTickerCandles(ticker, key) {
+  const now = Math.floor(Date.now() / 1000);
+  const fortyDaysAgo = now - 40 * 24 * 60 * 60;
+  const url = `https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(ticker)}&resolution=D&from=${fortyDaysAgo}&to=${now}&token=${encodeURIComponent(key)}`;
+  const r = await fetch(url);
+  if (r.status === 403) {
+    // Mark endpoint as unavailable so we stop trying
+    localStorage.setItem('pp2_candle_unavailable', 'true');
+    throw new Error('candle 403 (free tier)');
+  }
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const d = await r.json();
+  if (!d || d.s !== 'ok' || !Array.isArray(d.c) || d.c.length < 2) return null;
+  // Endpoint works — clear any stale "unavailable" flag
+  localStorage.removeItem('pp2_candle_unavailable');
+  return d;
+}
+
+function sma(closes, n) {
+  if (!closes || closes.length < n) return null;
+  const slice = closes.slice(-n);
+  return Number((slice.reduce((a,b) => a+b, 0) / n).toFixed(4));
+}
+function pctVsSma(price, avg) {
+  if (!avg || !price) return null;
+  return Number(((price - avg) / avg * 100).toFixed(2));
+}
+
+/**
+ * Aggregate the most recent 5 daily candles into a weekly OHLCV bar.
+ * Returns {open, high, low, close, volume, days, fromDate, toDate, source}
+ * or null.
+ */
+function aggregateWeeklyOHLCV(candles, currentPrice=null) {
+  if (!candles || !Array.isArray(candles.c) || candles.c.length < 1) return null;
+  const n = Math.min(5, candles.c.length);
+  const sliceFrom = candles.c.length - n;
+  const opens   = candles.o.slice(sliceFrom);
+  const highs   = candles.h.slice(sliceFrom);
+  const lows    = candles.l.slice(sliceFrom);
+  const closes  = candles.c.slice(sliceFrom);
+  const vols    = candles.v.slice(sliceFrom);
+  const times   = candles.t.slice(sliceFrom);
+  const wkHigh = Math.max(...highs, currentPrice || -Infinity);
+  const wkLow  = Math.min(...lows,  currentPrice ||  Infinity);
+  return {
+    open:   Number(opens[0].toFixed(4)),
+    high:   Number(wkHigh.toFixed(4)),
+    low:    Number(wkLow.toFixed(4)),
+    close:  Number((currentPrice || closes[closes.length-1]).toFixed(4)),
+    volume: Math.round(vols.reduce((a,b)=>a+b, 0)),
+    days:   n,
+    fromDate: new Date(times[0]*1000).toISOString().slice(0,10),
+    toDate:   new Date(times[times.length-1]*1000).toISOString().slice(0,10),
+    source: 'candle'
+  };
+}
+
+/**
+ * NEW v8.1: Build weekly OHLC from accumulated daily snapshots in priceSnap.
+ * Each snapshot stores today's intraday {o,h,l,c} from /quote (volume is N/A).
+ * Returns null if we have no usable snapshots for this ticker.
+ */
+function aggregateWeeklyFromSnaps(ticker, currentPrice=null) {
+  // Get the most recent 5 snapshots that have OHLC data for this ticker
+  const usable = priceSnap.filter(s => s.ohlc && s.ohlc[ticker]).slice(-5);
+  if (!usable.length) return null;
+  const opens  = usable.map(s => s.ohlc[ticker].o).filter(v => v > 0);
+  const highs  = usable.map(s => s.ohlc[ticker].h).filter(v => v > 0);
+  const lows   = usable.map(s => s.ohlc[ticker].l).filter(v => v > 0);
+  const closes = usable.map(s => s.ohlc[ticker].c).filter(v => v > 0);
+  if (!opens.length || !highs.length || !lows.length || !closes.length) return null;
+
+  const wkHigh = Math.max(...highs, currentPrice || -Infinity);
+  const wkLow  = Math.min(...lows,  currentPrice ||  Infinity);
+
+  return {
+    open:   Number(opens[0].toFixed(4)),
+    high:   Number(wkHigh.toFixed(4)),
+    low:    Number(wkLow.toFixed(4)),
+    close:  Number((currentPrice || closes[closes.length-1]).toFixed(4)),
+    volume: null,  // unavailable from /quote endpoint
+    days:   usable.length,
+    fromDate: usable[0].date,
+    toDate:   usable[usable.length-1].date,
+    source: 'snapshot'
+  };
+}
+
+async function fetchLiveMarketData() {
+  const key = getFinnhubKey();
+  if (!key) {
+    setStatus('marketStatus', 'Add a Finnhub API key in Settings first.', false);
+    return;
+  }
+  const tickers = holdings.map(h => h.ticker);
+  if (!tickers.length) { setStatus('marketStatus', 'No holdings to fetch.', false); return; }
+  const failures = [];
+  const candleSkipped = localStorage.getItem('pp2_candle_unavailable') === 'true';
+  let candleSucceededAny = false;
+  let done = 0;
+
+  // Capture today's intraday OHLC into a single snapshot for fallback aggregation
+  const todaySnap = {date: todayISO(), prices: {}, ohlc: {}};
+
+  for (const ticker of tickers) {
+    setStatus('marketStatus', `Fetching ${ticker}… (${done+1}/${tickers.length})`);
+    try {
+      const q = await fetchTickerQuote(ticker, key);
+      const px   = safeNum(q.c,0)>0 ? safeNum(q.c) : (safeNum(q.pc,0)>0 ? safeNum(q.pc) : null);
+      const prev = safeNum(q.pc,0)>0 ? safeNum(q.pc) : null;
+      if (!px) failures.push(`${ticker}: no price`);
+
+      // Capture today's intraday OHLC from /quote — works on free tier.
+      // q.o = today's open, q.h = today's high, q.l = today's low, q.c = current
+      if (px) {
+        todaySnap.prices[ticker] = px;
+        todaySnap.ohlc[ticker] = {
+          o: safeNum(q.o, px),
+          h: safeNum(q.h, px),
+          l: safeNum(q.l, px),
+          c: px
+        };
+      }
+
+      // Try /candle (premium tier) — gives full historical OHLCV with volume
+      let sma5 = null, sma20 = null, weekOHLC = null;
+      if (!candleSkipped) {
+        try {
+          const candles = await fetchTickerCandles(ticker, key);
+          if (candles) {
+            sma5  = sma(candles.c, 5);
+            sma20 = sma(candles.c, 20);
+            weekOHLC = aggregateWeeklyOHLCV(candles, px);
+            candleSucceededAny = true;
+          }
+        } catch(e) {
+          // Silently fall through to snapshot aggregation
+          if (e.message.includes('candle 403')) {
+            // Stop hammering the endpoint for the remaining tickers in this batch
+            // (the flag is already set inside fetchTickerCandles)
+          }
+        }
+      }
+
+      holdings = holdings.map(h => h.ticker !== ticker ? h : {
+        ...h,
+        lastPrice:    px   ?? h.lastPrice,
+        lastClose:    prev ?? h.lastClose,
+        sma5, sma20,
+        momentum5dPct:  pctVsSma(px, sma5),
+        momentum20dPct: pctVsSma(px, sma20),
+        weekOHLC: weekOHLC ?? h.weekOHLC,
+        lastFetchAt: nowISO(),
+        status: px ? 'Quote updated' : 'No valid quote; using prior price'
+      });
+    } catch(e) {
+      failures.push(`${ticker}: ${e.message}`);
+      holdings = holdings.map(h => h.ticker !== ticker ? h : {
+        ...h, status: `Fetch failed: ${e.message}`
+      });
+    }
+    done++;
+  }
+
+  localStorage.setItem(SK.lastRefresh, new Date().toLocaleString());
+
+  // Save today's snapshot (replaces any prior entry for today)
+  if (Object.keys(todaySnap.prices).length) {
+    priceSnap = priceSnap.filter(s => s.date !== todaySnap.date);
+    priceSnap.push(todaySnap);
+    if (priceSnap.length > 90) priceSnap = priceSnap.slice(-90);
+  }
+
+  // Backfill weekOHLC from snapshots for any holding that didn't get one from /candle
+  holdings = holdings.map(h => {
+    if (h.weekOHLC && h.weekOHLC.source === 'candle') return h; // keep premium data
+    const snapWeek = aggregateWeeklyFromSnaps(h.ticker, h.lastPrice);
+    return snapWeek ? {...h, weekOHLC: snapWeek} : h;
+  });
+
+  refreshPortfolioMark(true);
+  persistAll(); renderAll();
+
+  // Status message
+  const candleNowDisabled = localStorage.getItem('pp2_candle_unavailable') === 'true';
+  const dataSource = candleSucceededAny ? 'premium /candle (full history + volume)'
+                   : candleNowDisabled    ? 'free-tier /quote snapshots (volume unavailable)'
+                   : '/quote only';
+  setStatus('marketStatus', failures.length
+    ? `Done with issues: ${failures.join(' | ')} · source: ${dataSource}`
+    : `✓ Updated ${tickers.length} tickers · source: ${dataSource}`,
+    !failures.length);
+}
+
+/**
+ * Manual override: clear the "candle unavailable" flag so we retry the endpoint.
+ * Useful after upgrading Finnhub plan, or to retry on a transient failure.
+ */
+function retryCandleEndpoint() {
+  localStorage.removeItem('pp2_candle_unavailable');
+  setStatus('marketStatus', 'Will re-attempt /candle on next fetch.', true);
+}
+
+function refreshPortfolioMark(fromFetch=false) {
+  holdings = holdings.map(h => {
+    if (!(safeNum(h.lastPrice,0)>0)) return {...h, status: h.status || 'No price available'};
+    const seed = safeNum(h.initialUSD, safeNum(h.currentValueUSD, 0));
+    const shares = (h.shares===null||h.shares===undefined) ? seed/safeNum(h.lastPrice,1) : safeNum(h.shares,0);
+    return {
+      ...h,
+      shares: Number(shares.toFixed(6)),
+      currentValueUSD: Number((shares*safeNum(h.lastPrice,0)).toFixed(2)),
+      status: fromFetch ? 'Marked to market' : 'Re-marked'
+    };
+  });
+  markValuation('Portfolio refreshed');
+  persistAll(); renderAll();
+}
+
+/* ============================================================
+   ASK GEMINI (T2-08) — free-form
+   ============================================================ */
+async function askGemini() {
+  const q = document.getElementById('askInput').value.trim();
+  if (!q) { setStatus('askStatus', 'Type a question first.', false); return; }
+  if (!gemini.apiKey) {
+    setStatus('askStatus', 'Add a Gemini key in Settings first.', false);
+    return;
+  }
+  const btn = document.getElementById('askBtn');
+  btn.disabled = true; btn.textContent = '⏳';
+  setStatus('askStatus', 'Asking Gemini with full portfolio context…');
+
+  const ctx = buildCurrentPortfolioContext();
+  const today = new Date().toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+
+  const prompt = `Today is ${today}. You are a senior portfolio strategist. Answer the user's question using the portfolio context below and current market conditions.
+
+PORTFOLIO CONTEXT (NAV: ${toUSD(ctx.nav)}, total return: ${ctx.totalReturn}%):
+${ctx.positionLines}
+Cash: ${toUSD(ctx.cash)} (${ctx.cashPct}% of NAV)
+
+Existing thesis: ${ctx.thesis}
+
+USER QUESTION:
+${q}
+
+Answer directly and specifically. Reference actual position tickers from the portfolio above. Use 200-400 words. No generic disclaimers.`;
+
+  try {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(gemini.model||'gemini-2.5-flash')}:generateContent?key=${encodeURIComponent(gemini.apiKey)}`;
+    const res = await fetch(endpoint, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        contents: [{parts: [{text: prompt}]}],
+        tools: [{google_search: {}}],
+        generationConfig: {temperature: 0.4, maxOutputTokens: 2048}
+      })
+    });
+    if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0,200)}`);
+    const data = await res.json();
+    const answer = (data?.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('').trim();
+    if (!answer) throw new Error('Empty response.');
+
+    askHistory.unshift({timestamp: nowISO(), question: q, answer});
+    if (askHistory.length > 10) askHistory = askHistory.slice(0, 10);
+    persistAll();
+
+    document.getElementById('askInput').value = '';
+    renderAskResponse();
+    setStatus('askStatus', '✓ Response received', true);
+  } catch(e) {
+    setStatus('askStatus', `Error: ${e.message}`, false);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Ask';
+  }
+}
+
+function renderAskResponse() {
+  const el = document.getElementById('askResponse');
+  const countEl = document.getElementById('askGeminiCount');
+  if (countEl) countEl.textContent = `${askHistory.length} cached`;
+  if (!askHistory.length) {
+    el.className = 'ask-empty';
+    el.textContent = 'No questions asked yet. Press Enter to send.';
+    return;
+  }
+  const latest = askHistory[0];
+  el.className = 'ask-response';
+  el.innerHTML = `<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">
+    <strong style="color:var(--accent);">Q:</strong> ${latest.question}
+    <span style="margin-left:8px;color:var(--muted-2);">${fmtRelTime(latest.timestamp)}</span>
+  </div>${escapeHtml(latest.answer)}`;
+}
+
+function clearAskHistory() {
+  if (!askHistory.length) return;
+  if (!confirm('Clear all cached Q&A history?')) return;
+  askHistory = []; persistAll(); renderAskResponse();
+  setStatus('askStatus', 'Cleared.', true);
+}
+
+function escapeHtml(s) {
+  return String(s||'').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+/* ============================================================
+   PORTFOLIO ANALYSIS (existing, retained for Review tab)
+   ============================================================ */
+async function fetchPortfolioAnalysis() {
+  if (!gemini.apiKey) { setStatus('analysisStatus','Add a Gemini API key in Settings first.', false); return; }
+  const priced = holdings.filter(h => safeNum(h.lastPrice,0)>0);
+  if (!priced.length) { setStatus('analysisStatus','Fetch quotes first — need live prices to analyse.', false); return; }
+
+  const btn = document.getElementById('analysisBtn');
+  if (btn) { btn.textContent = '⏳ Analysing…'; btn.disabled = true; }
+  document.getElementById('analysisOutput').style.display = 'none';
+  setStatus('analysisStatus', 'Asking Gemini to analyse your portfolio against current conditions…');
+
+  const ctx = buildCurrentPortfolioContext();
+  const today = new Date().toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+  const prompt = `Today is ${today}. You are a senior risk analyst at a hedge fund reviewing a paper portfolio.
+
+CURRENT PORTFOLIO (NAV: ${toUSD(ctx.nav)}, total return: ${ctx.totalReturn}%):
+${ctx.positionLines}
+Cash: ${toUSD(ctx.cash)} (${ctx.cashPct}% of NAV)
+
+Existing thesis: ${ctx.thesis}
+
+Using current market conditions, recent macro developments, sector trends, and earnings newsflow, provide:
+
+1. KEY RISKS (3-5 bullets): The most material risks to this specific portfolio right now — macro, sector, single-stock, concentration, liquidity. Be specific to the positions held.
+
+2. RECOMMENDATIONS (3-5 bullets): Actionable suggestions to improve risk-adjusted returns or reduce tail risk — sizing, hedges, rotation, cash deployment. Reference specific tickers.
+
+Format:
+RISKS:
+• [risk 1]
+• [risk 2]
+...
+
+RECOMMENDATIONS:
+• [rec 1]
+• [rec 2]
+...
+
+Be direct and specific. No generic disclaimers.`;
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(gemini.model||'gemini-2.5-flash')}:generateContent?key=${encodeURIComponent(gemini.apiKey)}`;
+  try {
+    const res = await fetch(endpoint, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        contents:[{parts:[{text:prompt}]}],
+        tools:[{google_search:{}}],
+        generationConfig:{temperature:0.3, maxOutputTokens:2048}
+      })
+    });
+    if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0,200)}`);
+    const data = await res.json();
+    const text = (data?.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('').trim();
+    if (!text) throw new Error('Empty response.');
+    const ta = document.getElementById('analysisText');
+    ta.value = text;
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 900) + 'px';
+    document.getElementById('analysisOutput').style.display = 'block';
+    setStatus('analysisStatus', `✓ Analysis complete — ${today}`, true);
+  } catch(e) {
+    setStatus('analysisStatus', `Error: ${e.message}`, false);
+  } finally {
+    if (btn) { btn.textContent = '✦ Analyse with Gemini'; btn.disabled = false; }
+  }
+}
+
+/* ============================================================
+   SETTINGS — unified save (T1-01)
+   ============================================================ */
+function applyFormValues() {
+  const lookbackEl = document.getElementById('lookbackDays');
+  if (lookbackEl) lookbackEl.value = settings.lookbackDays;
+  const newsLookbackEl = document.getElementById('geminiNewsWindow');
+  if (newsLookbackEl) newsLookbackEl.value = String(gemini.newsWindowDays || 3);
+  const geminiKeyEl = document.getElementById('geminiKey');
+  if (geminiKeyEl) geminiKeyEl.value = gemini.apiKey || '';
+  const geminiModelEl = document.getElementById('geminiModel');
+  if (geminiModelEl) geminiModelEl.value = gemini.model || 'gemini-2.5-flash';
+  const finnhubEl = document.getElementById('finnhubKey');
+  if (finnhubEl) finnhubEl.value = localStorage.getItem('pp2_finnhub_key') || '';
+
+  // AI mode chips
+  document.querySelectorAll('[data-aimode]').forEach(b => {
+    b.classList.toggle('active', b.dataset.aimode === aiMode);
+  });
+  const badge = document.getElementById('aiModeBadge');
+  if (badge) badge.textContent = aiMode === 'fresh' ? 'Mode: Fresh portfolio' : 'Mode: Evolve current portfolio';
+}
+
+function saveAllSettings() {
+  // Finnhub
+  const fh = document.getElementById('finnhubKey').value.trim();
+  localStorage.setItem('pp2_finnhub_key', fh);
+  // Gemini bundle
+  gemini = {
+    apiKey: document.getElementById('geminiKey').value.trim(),
+    model:  document.getElementById('geminiModel').value,
+    newsWindowDays: safeNum(document.getElementById('geminiNewsWindow').value, 3)
+  };
+  // Other settings
+  settings.lookbackDays = safeNum(document.getElementById('lookbackDays').value, 45);
+  persistAll();
+  setStatus('settingsStatus', '✓ All settings saved.', true);
+  renderOnboarding();
+}
+
+/* ============================================================
+   BACKUP / RESTORE (T3-14)
+   ============================================================ */
+function exportState() {
+  const snapshot = {
+    version: 'v8',
+    exportedAt: nowISO(),
+    settings, gemini, holdings, cashUSD, tradeLog, valuation,
+    priceHist, newsState, cashLog, aiBasket, aiThesis,
+    rebalanceLog, priceSnap, askHistory, aiMode,
+    finnhubKey: localStorage.getItem('pp2_finnhub_key') || ''
+  };
+  const blob = new Blob([JSON.stringify(snapshot, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `paper-portfolio-${todayISO()}.json`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  setStatus('backupStatus', '✓ Backup downloaded.', true);
+}
+
+function importState(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (!confirm(`Restore from ${file.name}?\n\nThis OVERWRITES your current portfolio, trades, cash, and history. Take a backup first if needed.`)) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const snap = JSON.parse(e.target.result);
+      if (snap.settings) settings = snap.settings;
+      if (snap.gemini)   gemini   = snap.gemini;
+      if (snap.holdings) holdings = snap.holdings;
+      if (snap.cashUSD !== undefined) cashUSD = snap.cashUSD;
+      if (snap.tradeLog) tradeLog = snap.tradeLog;
+      if (snap.valuation) valuation = snap.valuation;
+      if (snap.priceHist) priceHist = snap.priceHist;
+      if (snap.newsState) newsState = snap.newsState;
+      if (snap.cashLog) cashLog = snap.cashLog;
+      if (snap.aiBasket) aiBasket = snap.aiBasket;
+      if (snap.aiThesis) aiThesis = snap.aiThesis;
+      if (snap.rebalanceLog) rebalanceLog = snap.rebalanceLog;
+      if (snap.priceSnap) priceSnap = snap.priceSnap;
+      if (snap.askHistory) askHistory = snap.askHistory;
+      if (snap.aiMode) aiMode = snap.aiMode;
+      if (snap.finnhubKey) localStorage.setItem('pp2_finnhub_key', snap.finnhubKey);
+      normalizeState();
+      persistAll();
+      applyFormValues();
+      renderAll();
+      setStatus('backupStatus', `✓ Restored from ${file.name} (${snap.exportedAt || 'unknown date'}).`, true);
+    } catch(err) {
+      setStatus('backupStatus', `Restore failed: ${err.message}`, false);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = ''; // allow same file re-import
+}
+
+/* ============================================================
+   FULL RESET (T1-04) — type-to-confirm
+   ============================================================ */
+function onResetTyped(value) {
+  document.getElementById('fullResetBtn').disabled = (value !== 'RESET');
+}
+function fullReset() {
+  if (document.getElementById('resetConfirmInput').value !== 'RESET') return;
+  if (!confirm('Last warning. Wipe everything and restart at $1,000?')) return;
+  Object.values(SK).forEach(k => localStorage.removeItem(k));
+  localStorage.removeItem(SK.onboardingDismissed);
+  holdings = []; cashUSD = null; tradeLog = []; aiLog = []; riskLog = [];
+  valuation = []; priceHist = {}; newsState = []; cashLog = [];
+  rebalanceLog = []; priceSnap = []; askHistory = [];
+  aiBasket = null; aiThesis = null;
+  settings = structuredClone(DEF_SETTINGS);
+  initializePortfolio(true);
+  document.getElementById('resetConfirmInput').value = '';
+  document.getElementById('fullResetBtn').disabled = true;
+  applyFormValues();
+  renderAll();
+  showTabById('overview');
+  alert('Portfolio reset to $1,000 with the default basket.');
+}
+
+/* ============================================================
+   CASH (deposit / withdraw / reset balance)
+   ============================================================ */
+function depositCash() {
+  const amt = safeNum(document.getElementById('depositAmount').value, 0);
+  const note = document.getElementById('depositNote').value.trim() || 'Deposit';
+  if (amt <= 0) return setStatus('depositStatus', 'Enter a positive amount.', false);
+  cashUSD = Number((safeNum(cashUSD,0) + amt).toFixed(2));
+  cashLog.unshift({timestamp:nowISO(), type:'DEPOSIT', amount:amt, balance:cashUSD, note});
+  markValuation(`Deposit: ${toUSD(amt)}`);
+  persistAll(); renderAll();
+  document.getElementById('depositAmount').value = '';
+  document.getElementById('depositNote').value = '';
+  setStatus('depositStatus', `✓ Deposited ${toUSD(amt)}.`, true);
+}
+function withdrawCash() {
+  const amt = safeNum(document.getElementById('withdrawAmount').value, 0);
+  const note = document.getElementById('withdrawNote').value.trim() || 'Withdrawal';
+  if (amt <= 0) return setStatus('withdrawStatus', 'Enter a positive amount.', false);
+  if (amt > safeNum(cashUSD,0)) return setStatus('withdrawStatus', `Insufficient cash (${toUSD(cashUSD)}).`, false);
+  cashUSD = Number((safeNum(cashUSD,0) - amt).toFixed(2));
+  cashLog.unshift({timestamp:nowISO(), type:'WITHDRAW', amount:-amt, balance:cashUSD, note});
+  markValuation(`Withdraw: ${toUSD(amt)}`);
+  persistAll(); renderAll();
+  document.getElementById('withdrawAmount').value = '';
+  document.getElementById('withdrawNote').value = '';
+  setStatus('withdrawStatus', `✓ Withdrew ${toUSD(amt)}.`, true);
+}
+function resetCashBalance() {
+  const amt = safeNum(document.getElementById('resetCashAmount').value, NaN);
+  const note = document.getElementById('resetCashNote').value.trim() || 'Cash override';
+  if (!isFinite(amt) || amt < 0) return setStatus('resetCashStatus', 'Enter a non-negative amount.', false);
+  if (!confirm(`Set cash to ${toUSD(amt)}? This logs as a RESET adjustment.`)) return;
+  const delta = amt - safeNum(cashUSD,0);
+  cashUSD = Number(amt.toFixed(2));
+  cashLog.unshift({timestamp:nowISO(), type:'RESET', amount:delta, balance:cashUSD, note});
+  markValuation(`Cash reset: ${toUSD(amt)}`);
+  persistAll(); renderAll();
+  document.getElementById('resetCashAmount').value = '';
+  document.getElementById('resetCashNote').value = '';
+  setStatus('resetCashStatus', `✓ Cash set to ${toUSD(amt)}.`, true);
+}
+/* ============================================================
+   TRADE — preview-then-confirm (T2-09) + rebalance to target (T1-03)
+   ============================================================ */
+let pendingTrades = {}; // {ticker: {action, amtUSD}}
+
+function previewTrade(ticker, action) {
+  const inputEl = document.getElementById(`tradeAmt_${ticker}`);
+  const amtUSD = safeNum(inputEl?.value, 0);
+  if (amtUSD <= 0) return setTradeStatus(ticker, 'Enter an amount first.', false);
+
+  const h = holdings.find(x => x.ticker === ticker);
+  if (!h) return setTradeStatus(ticker, 'Position not found.', false);
+  const price = safeNum(h.lastPrice, 0);
+  if (!price) return setTradeStatus(ticker, 'No live price — fetch quotes first.', false);
+
+  const nav = getPortfolioValue();
+  const curVal = safeNum(h.currentValueUSD, 0);
+  let resultVal, resultCash, shares;
+
+  if (action === 'BUY') {
+    if (safeNum(cashUSD,0) < amtUSD) return setTradeStatus(ticker, `Insufficient cash (${toUSD(cashUSD)}).`, false);
+    shares = amtUSD/price;
+    resultVal = curVal + amtUSD;
+    resultCash = safeNum(cashUSD,0) - amtUSD;
+  } else {
+    const maxSell = curVal;
+    if (maxSell <= 0) return setTradeStatus(ticker, 'Nothing to sell.', false);
+    const sellUSD = Math.min(amtUSD, maxSell);
+    shares = sellUSD/price;
+    resultVal = curVal - sellUSD;
+    resultCash = safeNum(cashUSD,0) + sellUSD;
+  }
+  const newWtPct = (resultVal/nav*100).toFixed(2);
+  const tgtPct = (safeNum(h.targetWeight,0)*100).toFixed(2);
+  const wtDelta = (newWtPct - tgtPct).toFixed(2);
+
+  pendingTrades[ticker] = {action, amtUSD};
+
+  setTradeStatus(ticker, `
+    <div class="preview-detail">
+      <strong>${action} ${toUSD(amtUSD)}</strong> @ $${price.toFixed(2)} = ${shares.toFixed(4)} shares<br>
+      New weight: <strong>${newWtPct}%</strong> (target ${tgtPct}%, Δ ${wtDelta>=0?'+':''}${wtDelta}pp)<br>
+      Cash after: ${toUSD(resultCash)}
+    </div>
+    <div class="btns" style="margin-top:6px;">
+      <button class="tiny" onclick="confirmTrade('${ticker}')">✓ Confirm</button>
+      <button class="ghost tiny" onclick="cancelTrade('${ticker}')">Cancel</button>
+    </div>
+  `, true, true);
+}
+
+function confirmTrade(ticker) {
+  const pending = pendingTrades[ticker];
+  if (!pending) return;
+  executeTrade(ticker, pending.action, pending.amtUSD);
+  delete pendingTrades[ticker];
+}
+function cancelTrade(ticker) {
+  delete pendingTrades[ticker];
+  setTradeStatus(ticker, 'Cancelled.', true);
+  renderRebalanceTable();
+}
+
+function setTradeStatus(ticker, msg, good=true, isHtml=false) {
+  const el = document.getElementById(`tradeStatus_${ticker}`);
+  if (!el) return;
+  if (isHtml) el.innerHTML = msg;
+  else el.innerHTML = `<span class="${good?'good':'bad'}">${msg}</span>`;
+}
+
+function executeTrade(ticker, action, providedAmt=null) {
+  const inputEl = document.getElementById(`tradeAmt_${ticker}`);
+  const amtUSD = providedAmt !== null ? providedAmt : safeNum(inputEl?.value, 0);
+  if (amtUSD <= 0) return setTradeStatus(ticker, 'Enter an amount first.', false);
+
+  const h = holdings.find(x => x.ticker === ticker);
+  if (!h) return setTradeStatus(ticker, 'Position not found.', false);
+  const price = safeNum(h.lastPrice, 0);
+  if (!price) return setTradeStatus(ticker, 'No live price — fetch quotes first.', false);
+
+  if (action === 'BUY') {
+    if (safeNum(cashUSD,0) < amtUSD) return setTradeStatus(ticker, `Insufficient cash (${toUSD(cashUSD)}).`, false);
+    const shares = amtUSD/price;
+    h.shares = Number((safeNum(h.shares,0) + shares).toFixed(6));
+    h.currentValueUSD = Number((h.shares*price).toFixed(2));
+    cashUSD = Number((safeNum(cashUSD,0) - amtUSD).toFixed(2));
+    h.lastTradeAt = nowISO(); h.status = 'Manual buy';
+    cashLog.unshift({timestamp:nowISO(), type:'BUY', amount:-amtUSD, balance:cashUSD,
+      note:`Bought ${ticker} — ${shares.toFixed(4)} sh @ $${price.toFixed(2)}`});
+    tradeLog.unshift({timestamp:nowISO(), action:'BUY', ticker, tradeUSD:amtUSD,
+      shares:Number(shares.toFixed(6)), price});
+    setTradeStatus(ticker, `✓ Bought ${toUSD(amtUSD)} — ${shares.toFixed(4)} sh`, true);
+  } else {
+    const maxSell = safeNum(h.currentValueUSD,0);
+    if (maxSell <= 0) return setTradeStatus(ticker, 'Nothing to sell.', false);
+    const sellUSD = Math.min(amtUSD, maxSell);
+    const shares = sellUSD/price;
+    h.shares = Number(Math.max(0, safeNum(h.shares,0) - shares).toFixed(6));
+    h.currentValueUSD = Number((h.shares*price).toFixed(2));
+    cashUSD = Number((safeNum(cashUSD,0) + sellUSD).toFixed(2));
+    h.lastTradeAt = nowISO(); h.status = 'Manual sell';
+    cashLog.unshift({timestamp:nowISO(), type:'SELL', amount:sellUSD, balance:cashUSD,
+      note:`Sold ${ticker} — ${shares.toFixed(4)} sh @ $${price.toFixed(2)}`});
+    tradeLog.unshift({timestamp:nowISO(), action:'SELL', ticker, tradeUSD:sellUSD,
+      shares:Number(shares.toFixed(6)), price});
+    setTradeStatus(ticker, sellUSD < amtUSD
+      ? `✓ Sold ${toUSD(sellUSD)} (full position)`
+      : `✓ Sold ${toUSD(sellUSD)} — ${shares.toFixed(4)} sh`, true);
+  }
+
+  markValuation(`Manual ${action.toLowerCase()}: ${ticker}`);
+  persistAll();
+  if (inputEl) inputEl.value = '';
+  renderAll();
+}
+
+/**
+ * T1-03: One-click rebalance to target weight for a single position.
+ */
+function rebalanceToTarget(ticker) {
+  const h = holdings.find(x => x.ticker === ticker);
+  if (!h) return;
+  const tgt = safeNum(h.targetWeight, 0);
+  if (tgt <= 0) return setTradeStatus(ticker, 'No target weight set.', false);
+  const price = safeNum(h.lastPrice, 0);
+  if (!price) return setTradeStatus(ticker, 'No live price — fetch quotes first.', false);
+
+  const nav = getPortfolioValue();
+  const targetUSD = nav * tgt;
+  const currentUSD = safeNum(h.currentValueUSD, 0);
+  const delta = targetUSD - currentUSD;
+  if (Math.abs(delta) < 1) return setTradeStatus(ticker, '✓ Already at target.', true);
+
+  const action = delta > 0 ? 'BUY' : 'SELL';
+  const amtUSD = Math.abs(delta);
+  // Set the input visually then trigger preview
+  const inputEl = document.getElementById(`tradeAmt_${ticker}`);
+  if (inputEl) inputEl.value = amtUSD.toFixed(2);
+  previewTrade(ticker, action);
+}
+
+/**
+ * Rebalance ALL positions to their target in one go.
+ * Skips positions where the diff is < 0.5% of NAV.
+ */
+function rebalanceAllToTarget() {
+  if (!holdings.length) return;
+  const nav = getPortfolioValue();
+  const candidates = holdings.filter(h => {
+    const tgt = safeNum(h.targetWeight, 0);
+    if (tgt <= 0) return false;
+    const price = safeNum(h.lastPrice, 0);
+    if (!price) return false;
+    const targetUSD = nav * tgt;
+    const delta = Math.abs(targetUSD - safeNum(h.currentValueUSD, 0));
+    return delta > nav * 0.005; // > 0.5% of NAV
+  });
+  if (!candidates.length) {
+    setStatus('marketStatus', 'All positions within 0.5% of target.', true);
+    return;
+  }
+  if (!confirm(`Rebalance ${candidates.length} positions to target weights?\n\nSells happen first to free cash, then buys.`)) return;
+
+  // Sort: sells first (free up cash), then buys
+  const trades = candidates.map(h => {
+    const tgt = safeNum(h.targetWeight, 0);
+    const targetUSD = nav * tgt;
+    const delta = targetUSD - safeNum(h.currentValueUSD, 0);
+    return {ticker: h.ticker, action: delta > 0 ? 'BUY' : 'SELL', amtUSD: Math.abs(delta)};
+  }).sort((a,b) => a.action === 'SELL' ? -1 : 1);
+
+  let executed = 0;
+  for (const t of trades) {
+    try {
+      executeTrade(t.ticker, t.action, t.amtUSD);
+      executed++;
+    } catch(e) { /* continue */ }
+  }
+  setStatus('marketStatus', `✓ Rebalanced ${executed}/${candidates.length} positions to target.`, true);
+}
+
+/* ============================================================
+   ADD NEW POSITION
+   ============================================================ */
+async function fetchNewTickerPrice() {
+  const key = getFinnhubKey();
+  if (!key) { setStatus('newPositionStatus', 'Add a Finnhub key in Settings first.', false); return; }
+  const ticker = document.getElementById('newTicker').value.trim().toUpperCase();
+  if (!ticker) { setStatus('newPositionStatus', 'Enter a ticker symbol.', false); return; }
+  setStatus('newPositionStatus', `Fetching ${ticker}...`);
+  try {
+    const q = await fetchTickerQuote(ticker, key);
+    const px = safeNum(q.c,0)>0 ? safeNum(q.c) : safeNum(q.pc,0);
+    if (!px) throw new Error('No valid price — check the ticker symbol.');
+    document.getElementById('newTickerPrice').value = px.toFixed(2);
+    setStatus('newPositionStatus', `${ticker} last price: $${px.toFixed(2)}`, true);
+  } catch(e) { setStatus('newPositionStatus', e.message, false); }
+}
+
+function executeNewPosition() {
+  const ticker = document.getElementById('newTicker').value.trim().toUpperCase();
+  const name   = document.getElementById('newTickerName').value.trim() || ticker;
+  const price  = safeNum(document.getElementById('newTickerPrice').value, 0);
+  const amtUSD = safeNum(document.getElementById('newTickerAmount').value, 0);
+  if (!ticker)   return setStatus('newPositionStatus', 'Enter a ticker symbol.', false);
+  if (!price)    return setStatus('newPositionStatus', 'Fetch price first.', false);
+  if (amtUSD<=0) return setStatus('newPositionStatus', 'Enter a valid USD amount.', false);
+  if (safeNum(cashUSD,0) < amtUSD)
+    return setStatus('newPositionStatus', `Insufficient cash (${toUSD(cashUSD)}).`, false);
+
+  const sharesDelta = amtUSD/price;
+  const existing = holdings.find(h => h.ticker === ticker);
+  if (existing) {
+    existing.shares = Number((safeNum(existing.shares,0) + sharesDelta).toFixed(6));
+    existing.currentValueUSD = Number((existing.shares*price).toFixed(2));
+    existing.lastPrice = price; existing.lastTradeAt = nowISO(); existing.status = 'Topped up';
+  } else {
+    holdings.push({
+      ticker, name, targetWeight: 0,
+      maxWeightPct: safeNum(settings.maxWeightPct, 20),
+      initialUSD: amtUSD,
+      shares: Number(sharesDelta.toFixed(6)),
+      lastPrice: price, lastClose: price,
+      currentValueUSD: Number((sharesDelta*price).toFixed(2)),
+      momentum1dPct: null, momentum5dPct: null, momentum20dPct: null,
+      weekOHLC: null, lastFetchAt: nowISO(),
+      status: 'New position', why: '', lastTradeAt: nowISO()
+    });
+  }
+  cashUSD = Number((safeNum(cashUSD,0) - amtUSD).toFixed(2));
+  cashLog.unshift({timestamp:nowISO(), type:'BUY', amount:-amtUSD, balance:cashUSD,
+    note:`${existing?'Top-up':'New position'}: ${ticker} @ $${price.toFixed(2)}`});
+  tradeLog.unshift({timestamp:nowISO(), action:'BUY', ticker, tradeUSD:amtUSD,
+    shares:Number(sharesDelta.toFixed(6)), price});
+  markValuation(existing ? `Top-up: ${ticker}` : `New position: ${ticker}`);
+  persistAll(); renderAll();
+  setStatus('newPositionStatus',
+    existing ? `✓ Added ${toUSD(amtUSD)} to existing ${ticker}.`
+             : `✓ Opened ${ticker}: ${sharesDelta.toFixed(4)} sh @ $${price.toFixed(2)}.`, true);
+  clearNewPositionForm();
+}
+
+function clearNewPositionForm() {
+  ['newTicker','newTickerName','newTickerAmount'].forEach(id => {
+    const e = document.getElementById(id);
+    if (e) e.value = '';
+  });
+  document.getElementById('newTickerPrice').value = '';
+}
+
+function closePosition(ticker) {
+  if (!confirm(`Close entire ${ticker} position and return proceeds to cash?`)) return;
+  const h = holdings.find(x => x.ticker === ticker);
+  if (!h) return;
+  const proceeds = safeNum(h.currentValueUSD, 0);
+  if (proceeds > 0) {
+    cashUSD = Number((safeNum(cashUSD,0) + proceeds).toFixed(2));
+    cashLog.unshift({timestamp:nowISO(), type:'SELL', amount:proceeds, balance:cashUSD,
+      note:`Closed position: ${ticker}`});
+    tradeLog.unshift({timestamp:nowISO(), action:'CLOSE', ticker, tradeUSD:proceeds,
+      shares:safeNum(h.shares,0), price:safeNum(h.lastPrice,0)||null});
+  }
+  holdings = holdings.filter(x => x.ticker !== ticker);
+  markValuation(`Position closed: ${ticker}`);
+  persistAll(); renderAll();
+}
+
+/* ============================================================
+   DRILL-DOWN DRAWER (T2-06)
+   ============================================================ */
+function openTickerDrillDown(ticker) {
+  const h = holdings.find(x => x.ticker === ticker);
+  if (!h) return;
+
+  const nav = getPortfolioValue() || 1;
+  const wt = safeNum(h.currentValueUSD,0)/nav*100;
+  const tgt = safeNum(h.targetWeight,0)*100;
+  const initial = safeNum(h.initialUSD, 0);
+  const current = safeNum(h.currentValueUSD, 0);
+  const posReturn = initial > 0 ? ((current - initial)/initial*100) : null;
+
+  const wk = h.weekOHLC;
+  const wkPct = wk && wk.open ? ((wk.close - wk.open)/wk.open*100) : null;
+
+  // Trade history for this ticker
+  const trades = tradeLog.filter(t => t.ticker === ticker && t.action !== 'INIT').slice(0, 20);
+
+  // News for this ticker
+  const tickerNews = newsState.filter(n => n.ticker === ticker).slice(0, 5);
+
+  document.getElementById('drawerContent').innerHTML = `
+    <h2 style="font-size:24px;">${ticker}
+      <span class="muted-text" style="font-size:14px; font-weight:400;">${escapeHtml(h.name)}</span>
+    </h2>
+    <p class="small" style="margin-top:4px;">${escapeHtml(h.why || '')}</p>
+
+    <div class="metrics-4" style="margin:18px 0;">
+      <div class="metric"><span class="label">Price</span><span class="value">${h.lastPrice ? '$'+h.lastPrice.toFixed(2) : '—'}</span>
+        <span class="sub">${h.lastFetchAt ? 'Updated '+fmtRelTime(h.lastFetchAt) : 'never'}</span></div>
+      <div class="metric"><span class="label">Position value</span><span class="value">${toUSD(current)}</span>
+        <span class="sub">${wt.toFixed(2)}% of NAV (target ${tgt.toFixed(1)}%)</span></div>
+      <div class="metric"><span class="label">P/L vs cost</span>
+        <span class="value ${posReturn>=0?'good':'bad'}">${posReturn !== null ? (posReturn>=0?'+':'')+posReturn.toFixed(2)+'%' : '—'}</span>
+        <span class="sub">${toUSD(current - initial)}</span></div>
+      <div class="metric"><span class="label">Week change</span>
+        <span class="value ${wkPct>=0?'good':'bad'}">${wkPct !== null ? (wkPct>=0?'+':'')+wkPct.toFixed(2)+'%' : '—'}</span>
+        <span class="sub">${wk ? wk.fromDate+' → '+wk.toDate : 'no data'}</span></div>
+    </div>
+
+    ${wk ? `
+    <div class="card-section">
+      <h3>Week OHLCV
+        <span class="pill ${wk.source==='candle'?'good':'warn'}" style="font-size:10px;margin-left:8px;">
+          ${wk.source==='candle' ? 'PREMIUM /candle' : `SNAPSHOT · ${wk.days}/5 days`}
+        </span>
+      </h3>
+      <table>
+        <tr><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Volume</th><th>% chg</th></tr>
+        <tr class="mono">
+          <td>$${wk.open.toFixed(2)}</td>
+          <td>$${wk.high.toFixed(2)}</td>
+          <td>$${wk.low.toFixed(2)}</td>
+          <td>$${wk.close.toFixed(2)}</td>
+          <td>${wk.volume !== null && isFinite(wk.volume) ? fmtVol(wk.volume) : '<span class="muted-text">n/a (free tier)</span>'}</td>
+          <td class="${wkPct>=0?'good':'bad'}">${(wkPct>=0?'+':'')+wkPct.toFixed(2)}%</td>
+        </tr>
+      </table>
+      ${wk.source==='snapshot' ? `<p class="small" style="margin-top:8px;">Built from ${wk.days} daily intraday snapshots (Finnhub <span class="mono">/quote</span>). Refresh quotes daily to fill out the full 5-day week. Volume requires a paid Finnhub plan.</p>` : ''}
+    </div>` : ''}
+
+    <div class="card-section">
+      <h3>Recent trades · ${trades.length}</h3>
+      ${trades.length ? `<table>
+        <tr><th>When</th><th>Action</th><th>USD</th><th>Shares</th><th>Price</th></tr>
+        ${trades.map(t => `<tr>
+          <td>${new Date(t.timestamp).toLocaleDateString()}</td>
+          <td><span class="pill ${t.action==='BUY'?'good':'bad'}">${t.action}</span></td>
+          <td>${typeof t.tradeUSD==='number'?toUSD(t.tradeUSD):'—'}</td>
+          <td class="mono">${typeof t.shares==='number'?t.shares.toFixed(4):'—'}</td>
+          <td class="mono">${t.price?'$'+Number(t.price).toFixed(2):'—'}</td>
+        </tr>`).join('')}
+      </table>` : '<p class="small">No trades for this ticker yet.</p>'}
+    </div>
+
+    ${tickerNews.length ? `
+    <div class="card-section">
+      <h3>Recent news · ${tickerNews.length}</h3>
+      ${tickerNews.map(n => `<div class="news-item">
+        <strong>${escapeHtml(n.headline)}</strong>
+        <div class="small" style="margin-top:4px;">${new Date(n.datetime).toLocaleDateString()} · ${n.sentiment || 'neutral'}</div>
+        <div class="small" style="margin-top:6px;">${escapeHtml(n.summary || '')}</div>
+        ${n.url ? `<div class="small" style="margin-top:6px;"><a href="${n.url}" target="_blank" rel="noopener">Source →</a></div>` : ''}
+      </div>`).join('')}
+    </div>` : ''}
+
+    <div class="card-section">
+      <button onclick="askAboutTicker('${ticker}')">✦ Ask Gemini about ${ticker}</button>
+    </div>
+  `;
+  document.getElementById('drawerOverlay').classList.add('active');
+  document.getElementById('drawer').classList.add('active');
+}
+
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('active');
+  document.getElementById('drawerOverlay').classList.remove('active');
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeDrawer();
+});
+
+function askAboutTicker(ticker) {
+  closeDrawer();
+  showTabById('overview');
+  setTimeout(() => {
+    const input = document.getElementById('askInput');
+    input.value = `Detailed view on ${ticker}: current setup, key catalysts in the next 90 days, main risks, and whether to add/trim/hold given my full portfolio.`;
+    input.focus();
+  }, 200);
+}
+/* ============================================================
+   RENDER — metrics
+   ============================================================ */
+function renderMetrics() {
+  const nav = getPortfolioValue();
+  const lastVal = valuation.length>1 ? valuation[valuation.length-2].portfolioValueUSD : nav;
+  const pnl = nav - safeNum(settings.startingCapital, 1000);
+  const pnlPct = safeNum(settings.startingCapital,1000) > 0
+    ? (pnl/safeNum(settings.startingCapital,1000)*100) : 0;
+  const daily = nav - safeNum(lastVal, nav);
+  const lastRefresh = localStorage.getItem(SK.lastRefresh) || 'Never';
+  const el = document.getElementById('metrics');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="metric"><span class="label">Portfolio NAV</span><span class="value">${toUSD(nav)}</span></div>
+    <div class="metric"><span class="label">Cash</span><span class="value">${toUSD(cashUSD)}</span></div>
+    <div class="metric"><span class="label">P/L vs start</span>
+      <span class="value ${pnl>=0?'good':'bad'}">${toUSD(pnl)}</span>
+      <span class="sub ${pnl>=0?'good':'bad'}">${pnl>=0?'+':''}${pnlPct.toFixed(2)}%</span></div>
+    <div class="metric"><span class="label">Latest move</span>
+      <span class="value ${daily>=0?'good':'bad'}">${toUSD(daily)}</span></div>
+    <div class="metric"><span class="label">Positions</span><span class="value">${holdings.length}</span></div>
+    <div class="metric"><span class="label">Last refresh</span>
+      <span class="value" style="font-size:13px;">${lastRefresh.length > 16 ? lastRefresh.slice(0,16)+'…' : lastRefresh}</span></div>
+  `;
+}
+
+/* ============================================================
+   SPARKLINE (T1-05)
+   ============================================================ */
+function drawSparkline() {
+  const svg = document.getElementById('sparklineSvg');
+  if (!svg) return;
+  const data = valuation.filter(d => safeNum(d.portfolioValueUSD,0) > 0);
+  const navEl = document.getElementById('sparkNav');
+  const pnlEl = document.getElementById('sparkPnL');
+  if (navEl) navEl.textContent = toUSD(getPortfolioValue());
+
+  const startCap = safeNum(settings.startingCapital, 1000);
+  const pnl = getPortfolioValue() - startCap;
+  const pnlPct = startCap > 0 ? (pnl/startCap*100) : 0;
+  if (pnlEl) {
+    pnlEl.innerHTML = `<span class="${pnl>=0?'good':'bad'}" style="font-weight:700;font-size:15px;">${pnl>=0?'+':''}${pnlPct.toFixed(2)}%</span><br><span class="muted-text" style="font-size:10px;">Click for full chart →</span>`;
+  }
+
+  if (data.length < 2) {
+    svg.innerHTML = `<text x="400" y="35" fill="#7385b8" font-size="11" text-anchor="middle">Fetch quotes to start building the chart</text>`;
+    return;
+  }
+  const W = 800, H = 60, ml = 4, mr = 4, mt = 6, mb = 6;
+  const cW = W-ml-mr, cH = H-mt-mb;
+  const vals = data.map(d => safeNum(d.portfolioValueUSD,0));
+  const minV = Math.min(...vals, startCap);
+  const maxV = Math.max(...vals, startCap);
+  const range = Math.max(maxV - minV, 1);
+  const xOf = i => ml + (i/Math.max(data.length-1,1))*cW;
+  const yOf = v => mt + (1 - (v-minV)/range)*cH;
+  const pts = data.map((d,i) => [xOf(i), yOf(safeNum(d.portfolioValueUSD,0))]);
+  const path = pts.map((p,i) => `${i?'L':'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  const fillPath = path + ` L${pts[pts.length-1][0].toFixed(1)},${H-mb} L${pts[0][0].toFixed(1)},${H-mb} Z`;
+  const refY = yOf(startCap).toFixed(1);
+  const lastV = vals[vals.length-1];
+  const colour = lastV >= startCap ? '#27c281' : '#ff6b6b';
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${colour}" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="${colour}" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <line x1="${ml}" y1="${refY}" x2="${W-mr}" y2="${refY}" stroke="#40528b" stroke-width="0.8" stroke-dasharray="3,3"/>
+    <path d="${fillPath}" fill="url(#sparkGrad)"/>
+    <path d="${path}" fill="none" stroke="${colour}" stroke-width="1.8"/>
+    <circle cx="${pts[pts.length-1][0]}" cy="${pts[pts.length-1][1]}" r="2.5" fill="${colour}"/>
+  `;
+}
+
+/* ============================================================
+   RENDER — engine metrics (Trade tab)
+   ============================================================ */
+function renderEngineMetrics() {
+  const nav = getPortfolioValue();
+  const cash = safeNum(cashUSD, 0);
+  const cashPct = nav > 0 ? (cash/nav*100).toFixed(1) : '0.0';
+  const minCashUSD = nav*(safeNum(settings.minCashBufferPct,5)/100);
+  const cashClass = cash < minCashUSD ? 'bad' : 'good';
+  const pnl = nav - safeNum(settings.startingCapital, 1000);
+  const el = document.getElementById('engineMetrics');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="metric"><span class="label">Portfolio NAV</span><span class="value">${toUSD(nav)}</span></div>
+    <div class="metric"><span class="label">Available cash</span><span class="value ${cashClass}">${toUSD(cash)}</span></div>
+    <div class="metric"><span class="label">Cash weight</span><span class="value">${cashPct}%</span></div>
+    <div class="metric"><span class="label">Positions</span><span class="value">${holdings.length}</span></div>
+    <div class="metric"><span class="label">P/L vs start</span><span class="value ${pnl>=0?'good':'bad'}">${toUSD(pnl)}</span></div>
+  `;
+}
+
+/* ============================================================
+   RENDER — REBALANCE TABLE (Trade desk)
+   includes: per-row → tgt button, preview state, mobile cards
+   includes: NEW weekly OHLCV columns (replaces SMA5/SMA20/Signal)
+   ============================================================ */
+function sortHoldingsArr(arr) {
+  const {col, dir} = holdingsSort;
+  const nav = getPortfolioValue() || 1;
+  const getKey = (h) => {
+    switch(col) {
+      case 'ticker': return h.ticker;
+      case 'currentWt': return safeNum(h.currentValueUSD,0)/nav;
+      case 'targetWt': return safeNum(h.targetWeight,0);
+      case 'value': return safeNum(h.currentValueUSD,0);
+      case 'price': return safeNum(h.lastPrice,0);
+      case 'dayChg': {
+        const d = (h.lastPrice && h.lastClose) ? (h.lastPrice - h.lastClose)/h.lastClose : 0;
+        return d;
+      }
+      case 'wkPct': {
+        const wk = h.weekOHLC;
+        return wk && wk.open ? (wk.close - wk.open)/wk.open : 0;
+      }
+      case 'wkVol': return h.weekOHLC ? h.weekOHLC.volume : 0;
+      default: return 0;
+    }
+  };
+  return [...arr].sort((a,b) => {
+    const ka = getKey(a), kb = getKey(b);
+    if (typeof ka === 'string') return dir === 'asc' ? ka.localeCompare(kb) : kb.localeCompare(ka);
+    return dir === 'asc' ? ka - kb : kb - ka;
+  });
+}
+
+function setHoldingsSort(col) {
+  if (holdingsSort.col === col) {
+    holdingsSort.dir = holdingsSort.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    holdingsSort = {col, dir: 'desc'};
+  }
+  save(SK.holdingsSort, holdingsSort);
+  renderRebalanceTable();
+}
+
+function arrowFor(col) {
+  return holdingsSort.col === col
+    ? `<span class="sort-arrow">${holdingsSort.dir === 'asc' ? '▲' : '▼'}</span>`
+    : '';
+}
+
+function renderRebalanceTable() {
+  const wrap = document.getElementById('rebalanceTableWrap');
+  const tbl = document.getElementById('rebalanceTable');
+  if (!tbl) return;
+  if (!holdings.length) {
+    tbl.innerHTML = '<tr><td class="small">No holdings yet.</td></tr>';
+    return;
+  }
+  const nav = getPortfolioValue() || 1;
+  const sorted = sortHoldingsArr(holdings);
+
+  const rows = sorted.map(h => {
+    const curPct = safeNum(h.currentValueUSD,0)/nav*100;
+    const tgtPct = safeNum(h.targetWeight,0)*100;
+    const diff = curPct - tgtPct;
+    const diffStr = (diff>=0?'+':'')+diff.toFixed(2)+'pp';
+    const diffClass = tgtPct === 0 ? '' : (Math.abs(diff)<0.5 ? '' : diff>0?'bad':'good');
+    const hasPrice = safeNum(h.lastPrice,0) > 0;
+    const dayChg = (h.lastPrice && h.lastClose)
+      ? ((h.lastPrice - h.lastClose)/h.lastClose*100) : null;
+    const dayChgClass = dayChg === null ? '' : (dayChg >= 0 ? 'good' : 'bad');
+
+    // ── Weekly OHLCV columns ──
+    const wk = h.weekOHLC;
+    const wkPct = wk && wk.open ? ((wk.close - wk.open)/wk.open*100) : null;
+    const wkRangeCell = wk ? renderWeekRangeCell(wk, h.lastPrice) : '<span class="muted-text">—</span>';
+    const wkPctCell = wkPct !== null
+      ? `<span class="${wkPct>=0?'good':'bad'} mono" title="${wk.source==='snapshot' ? `${wk.days}/5 days from snapshots` : 'from /candle'}">${(wkPct>=0?'+':'')+wkPct.toFixed(2)}%${wk.source==='snapshot'&&wk.days<5?` <span class="muted-text" style="font-size:9px;">(${wk.days}/5)</span>`:''}</span>`
+      : '<span class="muted-text">—</span>';
+    const wkVolCell = wk && wk.volume !== null && isFinite(wk.volume)
+      ? `<span class="mono">${fmtVol(wk.volume)}</span>`
+      : `<span class="muted-text" title="Volume requires Finnhub /candle endpoint (paid tier). Free-tier /quote does not return volume.">— <span style="font-size:9px;">n/a</span></span>`;
+
+    // Per-ticker fetch freshness (T3-12)
+    const lastFetch = h.lastFetchAt;
+    const stale = lastFetch && (Date.now() - new Date(lastFetch).getTime()) > 24*3600_000;
+    const freshTag = lastFetch
+      ? `<span class="${stale?'stale-tag':'fresh-tag'}">${stale?'⚠ ':''}${fmtRelTime(lastFetch)}</span>`
+      : '';
+
+    return `<tr>
+      <td>
+        <span class="ticker-link" onclick="openTickerDrillDown('${h.ticker}')">${h.ticker}</span>
+        ${freshTag}
+        <div class="small muted-text" style="margin-top:2px;max-width:120px;">${escapeHtml(h.name)}</div>
+      </td>
+      <td class="mono">${toUSD(h.currentValueUSD)}</td>
+      <td>${curPct.toFixed(2)}%</td>
+      <td>${tgtPct>0 ? tgtPct.toFixed(1)+'%' : '<span class="muted-text">—</span>'}</td>
+      <td class="${diffClass}">${tgtPct>0 ? diffStr : '—'}</td>
+      <td class="mono">${hasPrice?'$'+h.lastPrice.toFixed(2):'<span class="warn-text">—</span>'}</td>
+      <td class="mono ${dayChgClass}">${dayChg !== null ? (dayChg>=0?'+':'')+dayChg.toFixed(2)+'%' : '—'}</td>
+      <td>${wkRangeCell}</td>
+      <td>${wkPctCell}</td>
+      <td>${wkVolCell}</td>
+      <td>
+        <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">
+          <input type="number" id="tradeAmt_${h.ticker}" placeholder="USD" min="0.01" step="1"
+            style="width:78px;padding:6px 8px;font-size:12px;" />
+          <button class="tiny" onclick="previewTrade('${h.ticker}','BUY')" ${hasPrice?'':'disabled'}>Buy</button>
+          <button class="secondary tiny" onclick="previewTrade('${h.ticker}','SELL')" ${hasPrice?'':'disabled'}>Sell</button>
+          <button class="ghost tiny" onclick="rebalanceToTarget('${h.ticker}')" ${hasPrice && tgtPct>0?'':'disabled'}
+            title="Trade toward target weight">→ tgt</button>
+          <button class="ghost tiny" onclick="closePosition('${h.ticker}')"
+            style="color:#ff9090;border-color:#ff6b6b;" title="Close entire position">✕</button>
+        </div>
+        <div id="tradeStatus_${h.ticker}" style="margin-top:4px;font-size:11px;"></div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  tbl.innerHTML = `
+    <thead><tr>
+      <th class="sortable" onclick="setHoldingsSort('ticker')">Ticker ${arrowFor('ticker')}</th>
+      <th class="sortable" onclick="setHoldingsSort('value')">Value ${arrowFor('value')}</th>
+      <th class="sortable" onclick="setHoldingsSort('currentWt')">Current wt ${arrowFor('currentWt')}</th>
+      <th class="sortable" onclick="setHoldingsSort('targetWt')">Target wt ${arrowFor('targetWt')}</th>
+      <th>Δ vs target</th>
+      <th class="sortable" onclick="setHoldingsSort('price')">Price ${arrowFor('price')}</th>
+      <th class="sortable" onclick="setHoldingsSort('dayChg')">Day chg ${arrowFor('dayChg')}</th>
+      <th>Wk range (L→H)</th>
+      <th class="sortable" onclick="setHoldingsSort('wkPct')">Wk % ${arrowFor('wkPct')}</th>
+      <th class="sortable" onclick="setHoldingsSort('wkVol')">Wk vol ${arrowFor('wkVol')}</th>
+      <th>Action</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>`;
+
+  // Mobile cards mirror (T3-13)
+  renderHoldingsCards(sorted, nav);
+}
+
+function renderWeekRangeCell(wk, currentPrice) {
+  if (!wk) return '—';
+  const range = wk.high - wk.low;
+  const markerPct = range > 0 ? ((currentPrice || wk.close) - wk.low) / range * 100 : 50;
+  const clamped = Math.max(0, Math.min(100, markerPct));
+  return `<div class="week-range">
+    <div class="week-range-text"><span>${wk.low.toFixed(2)}</span><span>${wk.high.toFixed(2)}</span></div>
+    <div class="week-range-bar"><div class="week-range-marker" style="left:${clamped}%;"></div></div>
+  </div>`;
+}
+
+function renderHoldingsCards(sorted, nav) {
+  const wrap = document.getElementById('rebalanceTableWrap');
+  let cardsEl = document.getElementById('holdingsCards');
+  if (!cardsEl) {
+    cardsEl = document.createElement('div');
+    cardsEl.id = 'holdingsCards';
+    cardsEl.className = 'holdings-cards';
+    wrap.parentNode.insertBefore(cardsEl, wrap.nextSibling);
+  }
+  cardsEl.innerHTML = sorted.map(h => {
+    const curPct = safeNum(h.currentValueUSD,0)/nav*100;
+    const tgtPct = safeNum(h.targetWeight,0)*100;
+    const dayChg = (h.lastPrice && h.lastClose) ? ((h.lastPrice - h.lastClose)/h.lastClose*100) : null;
+    const wk = h.weekOHLC;
+    const wkPct = wk && wk.open ? ((wk.close - wk.open)/wk.open*100) : null;
+    return `<div class="h-card">
+      <div class="h-head">
+        <span class="ticker" onclick="openTickerDrillDown('${h.ticker}')">${h.ticker}</span>
+        <span class="muted-text" style="font-size:12px;">${escapeHtml(h.name)}</span>
+      </div>
+      <div class="h-row"><span class="l">Value / weight</span>
+        <span>${toUSD(h.currentValueUSD)} · ${curPct.toFixed(2)}% (tgt ${tgtPct.toFixed(1)}%)</span></div>
+      <div class="h-row"><span class="l">Price · day</span>
+        <span>${h.lastPrice?'$'+h.lastPrice.toFixed(2):'—'} ·
+          <span class="${dayChg>=0?'good':'bad'}">${dayChg!==null?(dayChg>=0?'+':'')+dayChg.toFixed(2)+'%':'—'}</span></span></div>
+      <div class="h-row"><span class="l">Week OHLC</span>
+        <span class="mono">${wk?`${wk.open.toFixed(2)} / ${wk.high.toFixed(2)} / ${wk.low.toFixed(2)} / ${wk.close.toFixed(2)}`:'—'}</span></div>
+      <div class="h-row"><span class="l">Week % · vol</span>
+        <span><span class="${wkPct>=0?'good':'bad'}">${wkPct!==null?(wkPct>=0?'+':'')+wkPct.toFixed(2)+'%':'—'}</span> · ${wk && wk.volume!==null && isFinite(wk.volume) ? fmtVol(wk.volume) : 'n/a'}</span></div>
+      <div class="btns" style="margin-top:10px;">
+        <input type="number" id="tradeAmtCard_${h.ticker}" placeholder="USD" min="0.01" step="1" style="width:100px;padding:6px 8px;font-size:12px;" />
+        <button class="tiny" onclick="document.getElementById('tradeAmt_${h.ticker}').value=document.getElementById('tradeAmtCard_${h.ticker}').value;previewTrade('${h.ticker}','BUY')">Buy</button>
+        <button class="secondary tiny" onclick="document.getElementById('tradeAmt_${h.ticker}').value=document.getElementById('tradeAmtCard_${h.ticker}').value;previewTrade('${h.ticker}','SELL')">Sell</button>
+        <button class="ghost tiny" onclick="rebalanceToTarget('${h.ticker}')">→ tgt</button>
+      </div>
+      <div id="tradeStatusCard_${h.ticker}" style="margin-top:6px;font-size:11px;"></div>
+    </div>`;
+  }).join('');
+}
+
+/* ============================================================
+   RENDER — basket / thesis card on Overview
+   ============================================================ */
+function buildThesisList() {
+  const basket = (aiBasket && aiBasket.length) ? aiBasket : DEFAULT_BASKET;
+  const isCustom = !!(aiBasket && aiBasket.length);
+
+  const titleEl = document.getElementById('basketTitle');
+  const subEl   = document.getElementById('basketSubtitle');
+  if (titleEl) titleEl.textContent = isCustom ? 'Active basket' : 'Default basket';
+  if (subEl)   subEl.textContent   = isCustom
+    ? 'Defined in the Build tab. Fetch quotes (Trade tab) to mark to market.'
+    : 'Seeded from default. Build your own in the Build tab.';
+
+  const thesisCard  = document.getElementById('thesisCard');
+  const thesisText  = document.getElementById('thesisText');
+  const thesisBadge = document.getElementById('thesisBadge');
+  if (thesisCard) {
+    if (aiThesis) {
+      thesisCard.style.display = 'block';
+      if (thesisText)  thesisText.textContent = aiThesis;
+      if (thesisBadge) thesisBadge.textContent = `Thesis · ${new Date().toLocaleDateString()}`;
+    } else {
+      thesisCard.style.display = 'none';
+    }
+  }
+
+  document.getElementById('thesisList').innerHTML = basket.map(h => `
+    <div class="news-item">
+      <div class="split">
+        <strong>${h.ticker}</strong>
+        <span class="pill">Target ${(safeNum(h.targetWeight,0)*100).toFixed(1)}%</span>
+      </div>
+      <div class="small">${escapeHtml(h.name)}</div>
+      <div class="small" style="margin-top:6px;">${escapeHtml(h.why || '')}</div>
+    </div>`).join('');
+}
+
+/* ============================================================
+   RENDER — cash metrics + cash log
+   ============================================================ */
+function renderCashMetrics() {
+  const nav = getPortfolioValue();
+  const cash = safeNum(cashUSD, 0);
+  const cashPct = nav>0 ? (cash/nav*100).toFixed(1) : '0.0';
+  const totalDeposited = cashLog.filter(c => c.type === 'DEPOSIT').reduce((s,c) => s + safeNum(c.amount,0), 0);
+  const totalWithdrawn = Math.abs(cashLog.filter(c => c.type === 'WITHDRAW').reduce((s,c) => s + safeNum(c.amount,0), 0));
+  const el = document.getElementById('cashMetrics');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="metric"><span class="label">Current cash</span><span class="value good">${toUSD(cash)}</span>
+      <span class="sub">${cashPct}% of NAV</span></div>
+    <div class="metric"><span class="label">Total deposited</span><span class="value good">${toUSD(totalDeposited)}</span></div>
+    <div class="metric"><span class="label">Total withdrawn</span><span class="value bad">${toUSD(totalWithdrawn)}</span></div>
+    <div class="metric"><span class="label">Net external flow</span>
+      <span class="value ${totalDeposited-totalWithdrawn>=0?'good':'bad'}">${toUSD(totalDeposited-totalWithdrawn)}</span></div>
+  `;
+}
+
+function renderCashLog() {
+  const el = document.getElementById('cashLogTable');
+  if (!el) return;
+  if (!cashLog.length) {
+    el.innerHTML = '<tr><td class="small">No cash flow events yet.</td></tr>'; return;
+  }
+  const rows = cashLog.slice(0, 100).map(c => {
+    let badgeClass = 'pill';
+    if (c.type === 'DEPOSIT') badgeClass = 'pill deposit-badge';
+    else if (c.type === 'WITHDRAW') badgeClass = 'pill withdraw-badge';
+    else if (c.type === 'RESET') badgeClass = 'pill reset-badge';
+    const amtStr = c.type === 'BUY'
+      ? `<span class="bad">${toUSD(Math.abs(c.amount))}</span>`
+      : c.type === 'SELL'
+        ? `<span class="good">+${toUSD(Math.abs(c.amount))}</span>`
+        : c.amount>=0
+          ? `<span class="good">+${toUSD(c.amount)}</span>`
+          : `<span class="bad">${toUSD(c.amount)}</span>`;
+    return `<tr>
+      <td>${new Date(c.timestamp).toLocaleString()}</td>
+      <td><span class="${badgeClass}">${c.type}</span></td>
+      <td class="mono">${amtStr}</td>
+      <td class="mono">${toUSD(c.balance)}</td>
+      <td>${escapeHtml(c.note || '')}</td>
+    </tr>`;
+  }).join('');
+  el.innerHTML = `<thead><tr><th>Time</th><th>Type</th><th>Amount</th><th>Balance after</th><th>Note</th></tr></thead><tbody>${rows}</tbody>`;
+}
+
+/* ============================================================
+   RENDER — Trade log
+   ============================================================ */
+function renderTradeLog() {
+  const el = document.getElementById('tradeTable');
+  if (!el) return;
+  const trades = tradeLog.filter(t => t.action !== 'INIT').slice(0, 100);
+  if (!trades.length) {
+    el.innerHTML = '<tr><td class="small" style="padding:12px;">No trades yet.</td></tr>'; return;
+  }
+  const actionBadge = a => {
+    const c = a==='BUY'?'good': a==='SELL'?'bad': a==='CLOSE'?'bad':'';
+    return `<span class="pill ${c}">${a}</span>`;
+  };
+  const rows = trades.map(t => {
+    const price = safeNum(t.price, 0);
+    const shares = typeof t.shares === 'number' ? t.shares.toFixed(4) : '—';
+    return `<tr>
+      <td style="white-space:nowrap;font-size:12px;">${new Date(t.timestamp).toLocaleString()}</td>
+      <td>${actionBadge(t.action)}</td>
+      <td><strong class="ticker-link" onclick="openTickerDrillDown('${t.ticker}')">${t.ticker}</strong></td>
+      <td class="mono">${typeof t.tradeUSD==='number'?toUSD(t.tradeUSD):'—'}</td>
+      <td class="mono">${shares}</td>
+      <td class="mono">${price>0?'$'+price.toFixed(2):'—'}</td>
+    </tr>`;
+  }).join('');
+  el.innerHTML = `<thead><tr><th>Time</th><th>Action</th><th>Ticker</th><th>USD</th><th>Shares</th><th>Price</th></tr></thead><tbody>${rows}</tbody>`;
+}
+
+/* ============================================================
+   RENDER — Rebalance log WITH DIFF (T3-16)
+   ============================================================ */
+function computeRebalanceDiff(currentEntry, previousEntry) {
+  if (!previousEntry) return null; // first rebalance has no prior
+  const prevMap = {};
+  previousEntry.picks.forEach(p => prevMap[p.ticker] = p.weight);
+  const curMap = {};
+  currentEntry.picks.forEach(p => curMap[p.ticker] = p.weight);
+
+  const added = [], removed = [], changed = [];
+  for (const [t, w] of Object.entries(curMap)) {
+    if (!(t in prevMap)) added.push({ticker: t, weight: w});
+    else if (Math.abs(w - prevMap[t]) > 0.005) {
+      changed.push({ticker: t, fromWt: prevMap[t], toWt: w});
+    }
+  }
+  for (const [t, w] of Object.entries(prevMap)) {
+    if (!(t in curMap)) removed.push({ticker: t, weight: w});
+  }
+  return {added, removed, changed};
+}
+
+function renderRebalanceLog() {
+  const el = document.getElementById('rebalanceLogList');
+  if (!el) return;
+  if (!rebalanceLog.length) {
+    el.innerHTML = '<div class="small" style="padding:12px 0;">No rebalances yet.</div>'; return;
+  }
+  el.innerHTML = rebalanceLog.slice(0, 20).map((r, idx) => {
+    const diff = computeRebalanceDiff(r, rebalanceLog[idx + 1]);
+    let diffSection = '';
+    if (diff) {
+      const chips = [];
+      diff.added.forEach(p => chips.push(`<span class="diff-chip diff-add">+ ${p.ticker} ${(p.weight*100).toFixed(1)}%</span>`));
+      diff.removed.forEach(p => chips.push(`<span class="diff-chip diff-rm">− ${p.ticker} ${(p.weight*100).toFixed(1)}%</span>`));
+      diff.changed.forEach(p => chips.push(`<span class="diff-chip diff-chg">Δ ${p.ticker} ${(p.fromWt*100).toFixed(1)}→${(p.toWt*100).toFixed(1)}%</span>`));
+      diffSection = chips.length
+        ? `<div style="margin:8px 0;">${chips.join(' ')}</div>`
+        : `<div class="small muted-text" style="margin:6px 0;">No structural change vs previous rebalance.</div>`;
+    } else {
+      diffSection = `<div class="small muted-text" style="margin:6px 0;">Initial rebalance — no prior to compare.</div>`;
+    }
+    return `<div class="news-item" style="margin-bottom:10px;">
+      <div class="split" style="margin-bottom:6px;">
+        <strong>${new Date(r.timestamp).toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'})}</strong>
+        <span style="display:flex;gap:6px;">
+          <span class="pill">${r.positionCount} positions</span>
+          <span class="pill good">NAV ${toUSD(r.navAtRebalance)}</span>
+        </span>
+      </div>
+      ${diffSection}
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        ${(r.picks||[]).map(p => `
+          <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;">
+            <span><strong>${p.ticker}</strong> <span class="muted-text">${escapeHtml(p.name)}</span></span>
+            <span style="display:flex;gap:8px;align-items:center;">
+              <span class="mono" style="color:var(--accent);">${(p.weight*100).toFixed(1)}%</span>
+            </span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+/* ============================================================
+   CHARTS — full NAV + component (with Y-axis labels per T3-17)
+   ============================================================ */
+function svgLine(pts) {
+  return pts.map((p,i) => `${i?'L':'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+}
+
+function drawChart() {
+  const svg = document.getElementById('chart');
+  if (!svg) return;
+  const data = valuation.filter(d => safeNum(d.portfolioValueUSD,0) > 0);
+  if (data.length < 2) {
+    svg.innerHTML = `<text x="480" y="130" fill="#a8b4d8" font-size="14" text-anchor="middle">Not enough data yet — fetch quotes to start tracking NAV.</text>`;
+    return;
+  }
+  const W = 960, H = 260, ml = 68, mr = 20, mt = 24, mb = 44;
+  const cW = W - ml - mr, cH = H - mt - mb;
+  const vals = data.map(d => safeNum(d.portfolioValueUSD,0));
+  const startCap = safeNum(settings.startingCapital, 1000);
+  const minV = Math.min(...vals, startCap) * 0.995;
+  const maxV = Math.max(...vals, startCap) * 1.005;
+  const range = Math.max(maxV - minV, 1);
+  const xOf = i => ml + (i / Math.max(data.length-1,1)) * cW;
+  const yOf = v => mt + (1 - (v - minV) / range) * cH;
+
+  // Y grid + labels
+  const ticks = 5;
+  let gridLines = '', yLabels = '';
+  for (let i = 0; i <= ticks; i++) {
+    const v = minV + (range/ticks) * i;
+    const y = yOf(v);
+    gridLines += `<line x1="${ml}" y1="${y.toFixed(1)}" x2="${W-mr}" y2="${y.toFixed(1)}" stroke="#1e2d54" stroke-width="1"/>`;
+    yLabels   += `<text x="${ml-6}" y="${(y+4).toFixed(1)}" fill="#6b7fa8" font-size="11" text-anchor="end">$${Number(v).toFixed(0)}</text>`;
+  }
+  // X labels
+  const step = Math.max(1, Math.floor(data.length/8));
+  let xLabels = '';
+  for (let i = 0; i < data.length; i += step) {
+    const x = xOf(i);
+    const d = data[i].date || '';
+    xLabels += `<text x="${x.toFixed(1)}" y="${H-mb+16}" fill="#6b7fa8" font-size="10" text-anchor="middle">${d.slice(5)}</text>`;
+  }
+  // Reference line at starting capital
+  const refY = yOf(startCap).toFixed(1);
+  const refLine = `<line x1="${ml}" y1="${refY}" x2="${W-mr}" y2="${refY}" stroke="#40528b" stroke-width="1" stroke-dasharray="4,4"/>
+    <text x="${W-mr-6}" y="${(refY-4)}" fill="#7385b8" font-size="10" text-anchor="end">Start ${toUSD(startCap)}</text>`;
+
+  // NAV line
+  const pts = data.map((d,i) => [xOf(i), yOf(safeNum(d.portfolioValueUSD,0))]);
+  const lastV = vals[vals.length-1];
+  const colour = lastV >= startCap ? '#27c281' : '#ff6b6b';
+  const fillPath = svgLine(pts) + ` L${pts[pts.length-1][0].toFixed(1)},${(mt+cH).toFixed(1)} L${pts[0][0].toFixed(1)},${(mt+cH).toFixed(1)} Z`;
+
+  // Range pill
+  const rangeEl = document.getElementById('navChartRange');
+  if (rangeEl) rangeEl.textContent = `${data[0].date} → ${data[data.length-1].date}`;
+
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="navGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${colour}" stop-opacity="0.25"/>
+        <stop offset="100%" stop-color="${colour}" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    ${gridLines}
+    ${refLine}
+    <path d="${fillPath}" fill="url(#navGrad)"/>
+    <path d="${svgLine(pts)}" fill="none" stroke="${colour}" stroke-width="2"/>
+    ${yLabels}
+    ${xLabels}
+    <line x1="${ml}" y1="${mt}" x2="${ml}" y2="${mt+cH}" stroke="#2a3a6a"/>
+    <line x1="${ml}" y1="${mt+cH}" x2="${W-mr}" y2="${mt+cH}" stroke="#2a3a6a"/>
+    <circle cx="${pts[pts.length-1][0]}" cy="${pts[pts.length-1][1]}" r="3.5" fill="${colour}"/>
+  `;
+}
+
+function drawComponentChart() {
+  const svg = document.getElementById('componentChart');
+  const legendEl = document.getElementById('componentLegend');
+  if (!svg) return;
+  if (!priceSnap.length) {
+    svg.innerHTML = `<text x="480" y="140" fill="#a8b4d8" font-size="14" text-anchor="middle">Fetch quotes a few times to build the component chart.</text>`;
+    if (legendEl) legendEl.innerHTML = '';
+    return;
+  }
+
+  const W = 960, H = 280, ml = 60, mr = 20, mt = 24, mb = 40;
+  const cW = W-ml-mr, cH = H-mt-mb;
+  const allTickers = Array.from(new Set(priceSnap.flatMap(s => Object.keys(s.prices))));
+  const dates = priceSnap.map(s => s.date);
+  if (!allTickers.length || dates.length < 2) {
+    svg.innerHTML = `<text x="480" y="140" fill="#a8b4d8" font-size="14" text-anchor="middle">Need at least 2 snapshots — fetch quotes again.</text>`;
+    return;
+  }
+  // Base price per ticker = first snapshot in which it appears
+  const basePrices = {};
+  allTickers.forEach(t => {
+    const first = priceSnap.find(s => s.prices[t]);
+    if (first) basePrices[t] = first.prices[t];
+  });
+  // Avg cost basis per ticker (from current holdings)
+  const avgCost = {};
+  holdings.forEach(h => {
+    if (h.shares > 0 && safeNum(h.initialUSD,0) > 0) {
+      avgCost[h.ticker] = h.initialUSD / h.shares;
+    }
+  });
+
+  // Compute series of % change from base
+  const series = {};
+  allTickers.forEach(t => {
+    series[t] = priceSnap.map((s,i) => {
+      const px = s.prices[t];
+      const base = basePrices[t];
+      if (!px || !base) return null;
+      return (px - base) / base * 100;
+    });
+  });
+  const allValues = Object.values(series).flat().filter(v => v !== null);
+  const minP = Math.floor(Math.min(...allValues, 0) - 2);
+  const maxP = Math.ceil(Math.max(...allValues, 0) + 2);
+  const range = Math.max(maxP - minP, 1);
+
+  const xOf = i => ml + (i / Math.max(dates.length-1,1)) * cW;
+  const yOf = p => mt + (1 - (p - minP) / range) * cH;
+
+  // Y-axis labels (T3-17) — 5 grid labels
+  const ticks = 5;
+  let gridLines = '', yLabels = '';
+  for (let i = 0; i <= ticks; i++) {
+    const v = minP + (range/ticks) * i;
+    const y = yOf(v);
+    gridLines += `<line x1="${ml}" y1="${y.toFixed(1)}" x2="${W-mr}" y2="${y.toFixed(1)}" stroke="#1e2d54" stroke-width="1"/>`;
+    yLabels   += `<text x="${ml-6}" y="${(y+4).toFixed(1)}" fill="#6b7fa8" font-size="11" text-anchor="end">${v>=0?'+':''}${v.toFixed(0)}%</text>`;
+  }
+
+  // X labels
+  const xStep = Math.max(1, Math.floor(dates.length/8));
+  let xLabels = '';
+  for (let i = 0; i < dates.length; i += xStep) {
+    xLabels += `<text x="${xOf(i).toFixed(1)}" y="${H-mb+16}" fill="#6b7fa8" font-size="10" text-anchor="middle">${dates[i].slice(5)}</text>`;
+  }
+
+  // Zero baseline
+  const zY = yOf(0).toFixed(1);
+  const zeroLine = `<line x1="${ml}" y1="${zY}" x2="${W-mr}" y2="${zY}" stroke="#40528b" stroke-width="1" stroke-dasharray="3,3"/>`;
+
+  // Color per ticker
+  const palette = ['#7aa2ff','#27c281','#f3b74f','#ff6b6b','#c587ff','#5dd4d4','#ff9966','#9af36b','#ff7faa','#88e0ff'];
+  const colourOf = t => palette[allTickers.indexOf(t) % palette.length];
+
+  // Line per ticker
+  let lines = '';
+  allTickers.forEach(t => {
+    const pts = series[t]
+      .map((p,i) => p === null ? null : [xOf(i), yOf(p)])
+      .filter(Boolean);
+    if (pts.length < 2) return;
+    const col = colourOf(t);
+    lines += `<path d="${svgLine(pts)}" fill="none" stroke="${col}" stroke-width="1.6" opacity="0.85">
+      <title>${t}</title></path>`;
+  });
+
+  // Cost basis dashed lines
+  let costLines = '';
+  allTickers.forEach(t => {
+    const col = colourOf(t);
+    const base = basePrices[t];
+    if (base && avgCost[t]) {
+      const costPct = (avgCost[t] - base)/base*100;
+      if (costPct >= minP && costPct <= maxP) {
+        const cy = yOf(costPct).toFixed(1);
+        costLines += `<line x1="${ml}" y1="${cy}" x2="${W-mr}" y2="${cy}" stroke="${col}" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.5">
+          <title>${t} avg cost: $${avgCost[t].toFixed(2)}</title></line>`;
+      }
+    }
+  });
+
+  svg.innerHTML = `${gridLines}${zeroLine}${costLines}${lines}${yLabels}${xLabels}
+    <line x1="${ml}" y1="${mt}" x2="${ml}" y2="${mt+cH}" stroke="#2a3a6a"/>
+    <line x1="${ml}" y1="${mt+cH}" x2="${W-mr}" y2="${mt+cH}" stroke="#2a3a6a"/>`;
+
+  if (legendEl) {
+    legendEl.innerHTML = allTickers.map(t => {
+      const col = colourOf(t);
+      const last = priceSnap.slice().reverse().find(s => s.prices[t]);
+      const base = basePrices[t];
+      const pct = (last && base) ? ((last.prices[t] - base)/base*100).toFixed(2) : null;
+      const pctStr = pct !== null
+        ? ` <span style="color:${Number(pct)>=0?'#4caf8a':'#ff7070'}">${Number(pct)>=0?'+':''}${pct}%</span>`
+        : '';
+      return `<span style="display:flex;align-items:center;gap:4px;">
+        <span style="width:12px;height:3px;background:${col};display:inline-block;border-radius:2px;"></span>
+        <span>${t}${pctStr}</span></span>`;
+    }).join('');
+  }
+}
+
+/* ============================================================
+   RENDER ALL
+   ============================================================ */
+function renderAll() {
+  renderMetrics();
+  drawSparkline();
+  renderEngineMetrics();
+  renderRebalanceTable();
+  renderCashMetrics();
+  renderCashLog();
+  renderTradeLog();
+  renderRebalanceLog();
+  drawChart();
+  drawComponentChart();
+  buildThesisList();
+  renderOnboarding();
+  // Show snapshot-mode banner if /candle has been confirmed unavailable
+  const banner = document.getElementById('candleFallbackBanner');
+  if (banner) {
+    banner.style.display =
+      localStorage.getItem('pp2_candle_unavailable') === 'true' ? 'block' : 'none';
+  }
+}
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+normalizeState();
+initializePortfolio(false);
+applyFormValues();
+populateBuilderFromCurrent();
+renderAskResponse();
+
+// Seed weekOHLC from any accumulated snapshots — gives existing users
+// useful data on first load without needing a fresh fetch.
+holdings = holdings.map(h => {
+  if (h.weekOHLC && h.weekOHLC.source === 'candle') return h;
+  const snapWeek = aggregateWeeklyFromSnaps(h.ticker, h.lastPrice);
+  return snapWeek ? {...h, weekOHLC: snapWeek} : h;
+});
+persistAll();
+
+renderAll();
+
+// Apply saved AI mode visually
+setAiMode(aiMode || 'fresh', document.querySelector(`[data-aimode="${aiMode||'fresh'}"]`));
+</script>
+</body>
+</html>
